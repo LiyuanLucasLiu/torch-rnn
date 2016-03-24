@@ -256,7 +256,7 @@ function LM:sample_beam(opt)
       end
       for i = #backwardString, 1, -1 do
           sampled[{{}, {index_sampled, index_sampled}}]:copy(backwardString[i])
-	  index_sampled = index_sampled + 1
+	        index_sampled = index_sampled + 1
           -- io.write(ivocab[backwardString[i]])
       end
   end
@@ -342,7 +342,7 @@ function LM:sample_beam(opt)
       for stateIndex,stateContent in ipairs(states) do
           if (outputIndex > 1 or stateIndex > 1) then -- The state was already loaded above if this is the first character.
               -- Pull the previous character.
-              prev_char = torch.Tensor{stringTails[stateIndex].value}
+              prev_char = torch.Tensor{stringTails[stateIndex].value}:view(1,1)
               -- -- Forward the latest character and extract the probabilities that result.
               -- if opt.debug == 1 then print("state #" .. stateIndex .. ", forwarding character '" .. ivocab[prev_char[1]] .. "'") end
               -- local lst = protos.rnn:forward{prev_char, unpack(stateContent)}
@@ -370,7 +370,7 @@ function LM:sample_beam(opt)
                   char_index = prev_char[1]
               else
                   -- Sample a character index.
-                  prev_char = torch.multinomial(probsCopy, 1):view(1,1)
+                  prev_char = torch.multinomial(probsCopy:float(), 1):resize(1):float()
                   char_index = prev_char[1]
               end
               if opt.debug == 1 then print("state #" .. stateIndex .. ", option #" .. candidate .. ": "
