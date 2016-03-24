@@ -260,6 +260,10 @@ function LM:sample_beam(opt)
       end
   end
 
+  function dprint(str)
+    if opt.debug == 1 then print(str) end
+  end
+  
   -- Print the portion of the string on which the beam has reached consensus so far.
   function printFinalizedCharacters(stringTails)
       if (#stringTails == 1) then
