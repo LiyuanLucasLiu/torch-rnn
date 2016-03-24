@@ -214,12 +214,12 @@ Inputs:
 Returns:
 - sampled: (1, max_length) array of integers, where the first part is init.
 --]]
-function LM:sample_beam(kwargs)
-  local T = utils.get_kwarg(kwargs, 'length', 100)
-  local start_text = utils.get_kwarg(kwargs, 'start_text', '')
-  local verbose = utils.get_kwarg(kwargs, 'verbose', 0)
-  local sample = utils.get_kwarg(kwargs, 'sample', 1)
-  local temperature = utils.get_kwarg(kwargs, 'temperature', 1)
+function LM:sample_beam(opt)
+  local T = utils.get_kwarg(opt, 'length', 100)
+  local start_text = utils.get_kwarg(opt, 'start_text', '')
+  local verbose = utils.get_kwarg(opt, 'verbose', 0)
+  local sample = utils.get_kwarg(opt, 'sample', 1)
+  local temperature = utils.get_kwarg(opt, 'temperature', 1)
 
   local sampled = torch.LongTensor(1, T)
   self:resetStates()
