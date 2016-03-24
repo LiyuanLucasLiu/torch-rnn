@@ -256,6 +256,7 @@ function LM:sample_beam(opt)
       end
       for i = #backwardString, 1, -1 do
           sampled[{{}, {index_sampled, index_sampled}}]:copy(backwardString[i])
+	  index_sampled = index_sampled + 1
           -- io.write(ivocab[backwardString[i]])
       end
   end
@@ -332,7 +333,7 @@ function LM:sample_beam(opt)
 
   local timer = torch.Timer()
 
-  for outputIndex=1, opt.length do
+  for outputIndex= first_t, opt.length do
       dprint("\nPicking character #" .. outputIndex)
       -- local newStateIndices = {}
       local newCumProbs = {}
@@ -349,7 +350,7 @@ function LM:sample_beam(opt)
               -- for i=1,state_size do table.insert(newStateContent, lst[i]:clone()) end -- clone to avoid entangling with other entries in state[].
               -- states[stateIndex] = newStateContent -- Save the modified state back to the state table.
               -- prediction = lst[#lst] -- log probabilities
-              prediction = stateContent.forward(prev_char)
+              prediction = stateContent:forward(prev_char)
           end
           -- Get the probabilities of each character at the current state.
           prediction:div(opt.temperature) -- scale by temperature
@@ -369,7 +370,7 @@ function LM:sample_beam(opt)
                   char_index = prev_char[1]
               else
                   -- Sample a character index.
-                  prev_char = torch.multinomial(probsCopy:float(), 1):resize(1):float()
+                  prev_char = torch.multinomial(probsCopy, 1):view(1,1)
                   char_index = prev_char[1]
               end
               if opt.debug == 1 then print("state #" .. stateIndex .. ", option #" .. candidate .. ": "
