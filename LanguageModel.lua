@@ -224,7 +224,7 @@ function LM:sample_beam(opt)
   local sampled = torch.LongTensor(1, T)
   self:resetStates()
 
-  local scores, first_t
+  local prediction, first_t
   if #start_text > 0 then
     if verbose > 0 then
       print('Seeding with: "' .. start_text .. '"')
@@ -232,14 +232,14 @@ function LM:sample_beam(opt)
     local x = self:encode_string(start_text):view(1, -1)
     local T0 = x:size(2)
     sampled[{{}, {1, T0}}]:copy(x)
-    scores = self:forward(x)[{{}, {T0, T0}}]
+    prediction = self:forward(x)[{{}, {T0, T0}}]
     first_t = T0 + 1
   else
     if verbose > 0 then
       print('Seeding with uniform probabilities')
     end
     local w = self.net:get(1).weight
-    scores = w.new(1, 1, self.vocab_size):fill(1)
+    prediction = w.new(1, 1, self.vocab_size):fill(1)
     first_t = 1
   end
   
@@ -263,7 +263,7 @@ function LM:sample_beam(opt)
   function dprint(str)
     if opt.debug == 1 then print(str) end
   end
-  
+
   -- Print the portion of the string on which the beam has reached consensus so far.
   function printFinalizedCharacters(stringTails)
       if (#stringTails == 1) then
