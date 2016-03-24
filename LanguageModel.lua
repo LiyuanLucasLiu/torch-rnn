@@ -207,12 +207,7 @@ end
 Sample from the language model. Note that this will reset the states of the
 underlying RNNs.
 
-Inputs:
-- init: String of length T0
-- max_length: Number of characters to sample
-
-Returns:
-- sampled: (1, max_length) array of integers, where the first part is init.
+sample with beam search, most of code are borrowed from http://github.com/pender/char-rnn
 --]]
 function LM:sample_beam(opt)
   local T = utils.get_kwarg(opt, 'length', 100)
@@ -255,7 +250,7 @@ function LM:sample_beam(opt)
           currentStringTail = currentStringTail.parent
       end
       for i = #backwardString, 1, -1 do
-          sampled[{{}, {index_sampled, index_sampled}}]:copy(backwardString[i])
+          sampled[{{}, {index_sampled, index_sampled}}] = backwardString[i]
 	        index_sampled = index_sampled + 1
           -- io.write(ivocab[backwardString[i]])
       end
@@ -340,7 +335,7 @@ function LM:sample_beam(opt)
       local newStringTails = {}
       local newStates = {}
       for stateIndex,stateContent in ipairs(states) do
-          if (outputIndex > 1 or stateIndex > 1) then -- The state was already loaded above if this is the first character.
+          if (outputIndex > first_t or stateIndex > 1) then -- The state was already loaded above if this is the first character.
               -- Pull the previous character.
               prev_char = torch.Tensor{stringTails[stateIndex].value}:view(1,1)
               -- -- Forward the latest character and extract the probabilities that result.
