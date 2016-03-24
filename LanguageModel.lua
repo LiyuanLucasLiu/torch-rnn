@@ -383,9 +383,9 @@ function LM:sample_beam(opt)
               local cumProb = probs[char_index] * cum_probs[stateIndex] -- Cumulative probability of this character choice
               if cumProb > 0 then -- If cumProb is equal to zero, this is a dead end.
                   local insertionPoint = -1
-                  if #newStateIndices < opt.beam then
-                       -- If newStateIndices has fewer entries than the beam width, we automatically qualify.
-                      insertionPoint = #newStateIndices + 1
+                  if #newStates < opt.beam then
+                       -- If newStates has fewer entries than the beam width, we automatically qualify.
+                      insertionPoint = #newStates + 1
                   else
                       local probsTensor = torch.Tensor(newCumProbs);
                       if opt.beamsample == 0 then
