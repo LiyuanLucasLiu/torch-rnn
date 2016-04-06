@@ -2,7 +2,8 @@ require 'torch'
 require 'nn'
 require 'optim'
 
-require 'LanguageModel'
+require 'LanguageModel_dec'
+require 'LanguageModel_enc'
 require 'util.DataLoader'
 
 local utils = require 'util.utils'
@@ -82,14 +83,19 @@ end
 -- Initialize the model and criterion
 local opt_clone = torch.deserialize(torch.serialize(opt))
 opt_clone.idx_to_token = idx_to_token
-local model = nil
+local encoder = nil
+local decoder = nil
+
 if opt.init_from ~= '' then
   print('Initializing from ', opt.init_from)
-  model = torch.load(opt.init_from).model:type(dtype)
+  -- future work 1
+  -- model = torch.load(opt.init_from).model:type(dtype)
 else
-  model = nn.LanguageModel(opt_clone):type(dtype)
+  encoder = nn.LanguageModel_enc(opt_clone):type(dtype)
+  decoder = nn.LanguageModel_dec(opt_clone):type(dtype)
 end
-local params, grad_params = model:getParameters()
+local encparams, encgrad_params = encoder:getParameters()
+local decparams, decgrad_params = decoder:getParameters()
 local crit = nn.CrossEntropyCriterion():type(dtype)
 
 -- Set up some variables we will use below
@@ -108,6 +114,15 @@ if opt.memory_benchmark == 1 then
   init_memory_usage = total - free
 end
 
+local function forwardConnect(encLM, decLM)
+  decLM.
+end
+
+local function backwardConnect(encLM, decLM)
+
+end
+
+
 -- Loss function that we pass to an optim method
 local function f(w)
   assert(w == params)
@@ -121,7 +136,10 @@ local function f(w)
     if cutorch then cutorch.synchronize() end
     timer = torch.Timer()
   end
-  local scores = model:forward(x)
+  local encOut = encoder:forward(x)
+  forwardConnect(encoder, decoder)
+  local decOut = decoder:forward(y)
+  local scores = criterion:forward(decOut, y)
 
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
@@ -131,7 +149,10 @@ local function f(w)
 
   -- Run the Criterion and model backward to compute gradients, maybe timing it
   local grad_scores = crit:backward(scores_view, y_view):view(N, T, -1)
-  model:backward(x, grad_scores)
+  decoder:backward(y, grad_scores)
+  backwardConnect(encoder, decoder)
+  local zeroTensor = torch.Tensor(2):zero()
+  enc:backward(x, zeroTensor)
   if timer then
     if cutorch then cutorch.synchronize() end
     local time = timer:time().real
