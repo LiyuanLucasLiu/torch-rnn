@@ -16,7 +16,7 @@ parser.add_argument('--quiet', action='store_true')
 parser.add_argument('--encoding', default='utf-8')
 args = parser.parse_args()
 
-
+#
 if __name__ == '__main__':
   if args.encoding == 'bytes': args.encoding = None
 
