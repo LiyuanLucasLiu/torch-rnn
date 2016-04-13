@@ -13,7 +13,7 @@ local cmd = torch.CmdLine()
 -- Dataset options
 cmd:option('-input_h5', 'data/tiny-shakespeare.h5')
 cmd:option('-input_json', 'data/tiny-shakespeare.json')
-cmd:option('-batch_size', 50)
+cmd:option('-batch_size', 1)
 cmd:option('-seq_length', 50)
 
 -- Model options
@@ -24,6 +24,7 @@ cmd:option('-rnn_size', 128)
 cmd:option('-num_layers', 2)
 cmd:option('-dropout', 0)
 cmd:option('-batchnorm', 0)
+cmd:option('-num_styles', 2)
 
 -- Optimization options
 cmd:option('-max_epochs', 50)
@@ -137,17 +138,6 @@ local function f(w)
     local time = timer:time().real
     print('Forward / Backward pass took ', time)
     table.insert(forward_backward_times, time)
-  end
-
-  -- Maybe record memory usage
-  if opt.memory_benchmark == 1 then
-    assert(cutorch)
-    if cutorch then cutorch.synchronize() end
-    local free, total = cutorch.getMemoryUsage(cutorch.getDevice())
-    local memory_used = total - free - init_memory_usage
-    local memory_used_mb = memory_used / 1024 / 1024
-    print(string.format('Using %dMB of memory', memory_used_mb))
-    table.insert(memory_usage, memory_used)
   end
 
   if opt.grad_clip > 0 then
