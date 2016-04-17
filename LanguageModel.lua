@@ -37,7 +37,7 @@ function LM:__init(kwargs)
     -- if self.model_type == 'rnn' then
     --   rnn = nn.VanillaRNN(prev_dim, H)
     -- elseif self.model_type == 'lstm' then
-    if (i == self.num_layers) do
+    if (i == self.num_layers) then
       rnn = nn.LLSTM(prev_dim, H)
     else
       rnn = nn.LSTM(prev_dim, H)

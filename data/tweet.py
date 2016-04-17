@@ -85,15 +85,15 @@ class tweet:
 		self.addToDict(mat)
 		fet = map(lambda x: x.decode('utf-8'), fet)
 		mat = map(lambda x: x.decode('utf-8'), mat)
-		self.threshold = zeros(num4padding)
+		self.threshold = [0] * num4padding
 		self.threshold[0] = self.max_len - self.min_len
-		for i in range(1:num4padding):
-			self.threshold[i] = self.threshold[i-1]/2
-		self.threshold = map(lambda x: x + self.min_len, self.threshold)
-		step = (self.max_len- self.min_len)/num4padding
-		weight_fet = int(math.ceil(len(mat)/len(fet)))
-		weight_mat = -1
-		self.threshold_count = [0 for v in range(0, num4padding)]
+		for i in range(1,num4padding):
+			self.threshold[i] = int(self.threshold[i-1]/6)
+		self.threshold = [648, 120, 30, 10]# map(lambda x: x + self.min_len, self.threshold)
+		#step = (self.max_len- self.min_len)/num4padding
+		self.weight_fet = len(mat)/len(fet)
+		self.weight_mat = 1
+		self.threshold_count = [0, 0, 0, 0] #[0 for v in range(0, num4padding)]
 		for line in fet:
 			tmplen = 2*len(line)
 			for idx in range(1, num4padding+1):
@@ -112,14 +112,14 @@ class tweet:
 			tmpx.fill(self.token2num[self.pad])
 			tmpy = np.empty(self.threshold_count[idx])
 			shuffleidx = range(0, self.threshold_count[idx])
-			test_idx = self.threshold_count[idx] - self.threshold_count*test_frac
-			val_idx = test_idx - self.threshold_count*val_frac
+			test_idx = self.threshold_count[idx] - int(self.threshold_count[idx]*test_frac)
+			val_idx = test_idx - (self.threshold_count[idx]*val_frac)
 			random.shuffle(shuffleidx)
 			tmpidx = 0
 			for line in fet:
 				if (idx+1==num4padding or 2*len(line) > self.threshold[idx+1]) and 2*len(line) <= self.threshold[idx]:
 					tmptmpidx = 0
-					tmpy[shuffleidx[tmpidx]] = weight_fet
+					tmpy[shuffleidx[tmpidx]] = 1
 					for item in line:
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width
 						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width
@@ -128,7 +128,7 @@ class tweet:
 			for line in mat:
 				if (idx+1==num4padding or 2*len(line) > self.threshold[idx+1]) and 2*len(line) <= self.threshold[idx]:
 					tmptmpidx = 0
-					tmpy[shuffleidx[tmpidx]] = weight_mat
+					tmpy[shuffleidx[tmpidx]] = 2
 					for item in line:
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width
 						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width
@@ -145,13 +145,15 @@ class tweet:
 			'threshold_count': self.threshold_count,
 			'token2num': self.token2num,
 			'width': self.width,
+			'weight_fet': self.weight_fet,
+			'weight_mat': self.weight_mat,
 		}
 		with open('male_female.json', 'w') as f:
 			json.dump(json_data, f)
 
 	def saveas(self, address):
 		with open(address, 'wb') as f:
-			f.write(json.dump(self.token2num))
+			json.dump(self.token2num, f)
 
 	def readfrom(self, address):
 		with open(address, 'rb') as f:

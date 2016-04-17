@@ -38,10 +38,6 @@ cmd:option('-print_every', 1)
 cmd:option('-checkpoint_every', 1000)
 cmd:option('-checkpoint_name', 'cv/checkpoint')
 
--- Benchmark options
-cmd:option('-speed_benchmark', 0)
-cmd:option('-memory_benchmark', 0)
-
 -- Backend options
 cmd:option('-gpu', 0)
 cmd:option('-gpu_backend', 'cuda')
@@ -88,7 +84,10 @@ else
   model = nn.LanguageModel(opt_clone):type(dtype)
 end
 local params, grad_params = model:getParameters()
-local crit = nn.CrossEntropyCriterion():type(dtype)
+local weight = torch.Tensor(2)
+weight[1] = vocab.weight_fet
+weight[2] = vocab.weight_mat
+local crit = nn.CrossEntropyCriterion(weight):type(dtype)
 
 -- Set up some variables we will use below
 local train_loss_history = {}
