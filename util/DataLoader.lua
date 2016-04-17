@@ -6,48 +6,66 @@ local utils = require 'util.utils'
 local DataLoader = torch.class('DataLoader')
 
 
-function DataLoader:__init(kwargs)
+function DataLoader:__init(kwargs, num4padding)
   local h5_file = utils.get_kwarg(kwargs, 'input_h5')
   self.batch_size = utils.get_kwarg(kwargs, 'batch_size')
-  self.seq_length = utils.get_kwarg(kwargs, 'seq_length')
-  local N, T = self.batch_size, self.seq_length
+  -- self.seq_length = utils.get_kwarg(kwargs, 'seq_length')
+  -- local N, T = self.batch_size, self.seq_length
 
   -- Just slurp all the data into memory
-  local splits = {}
   local f = hdf5.open(h5_file, 'r')
-  splits.train = f:read('/train'):all()
-  splits.val = f:read('/val'):all()
-  splits.test = f:read('/test'):all()
+  self.num4padding = num4padding
+  self.x_splits = {train = {}, test = {}, val = {}}
+  self.y_splits = {train = {}, test = {}, val = {}}
+  self.split_sizes = {train = {}, test = {}, val = {}}
 
-  self.x_splits = {}
-  self.y_splits = {}
-  self.split_sizes = {}
-  for split, v in pairs(splits) do
-    local num = v:nElement()
-    local extra = num % (N * T)
+  for idx=1,num4padding do
 
-    -- Chop out the extra bits at the end to make it evenly divide
-    local vx = v[{{1, num - extra}}]:view(N, -1, T):transpose(1, 2):clone()
-    local vy = v[{{2, num - extra + 1}}]:view(N, -1, T):transpose(1, 2):clone()
+    local vx = f:read('/x_train'..idx):all()
+    local vy = f:read('/y_train'..idx):all()
+    local tmpsize = vx:size(1)
+    tmpsize = tmpsize - tmpsize%batch_size
+    self.x_splits['train'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/batch_size, batch_size, -1):clone()
+    self.y_splits['train'][idx] = vy[{1, tmpsize}]:view(tmpsize/batch_size, batch_size, 1):clone()
+    self.split_sizes['train'][idx] = tmpsize/batch_size
+    
+    vx = f:read('/x_val'..idx):all()
+    vy = f:read('/y_val'..idx):all()
+    tmpsize = vx:size(1)
+    tmpsize = tmpsize - tmpsize%batch_size
+    self.x_splits['val'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/batch_size, batch_size, -1):clone()
+    self.y_splits['val'][idx] = vy[{1, tmpsize}]:view(tmpsize/batch_size, batch_size, 1):clone()
+    self.split_sizes['val'][idx] = tmpsize/batch_size
+    
+    vx = f:read('/x_test'..idx):all()
+    vy = f:read('/y_test'..idx):all()
+    tmpsize = vx:size(1)
+    tmpsize = tmpsize - tmpsize%batch_size
+    self.x_splits['test'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/batch_size, batch_size, -1):clone()
+    self.y_splits['test'][idx] = vy[{1, tmpsize}]:view(tmpsize/batch_size, batch_size, 1):clone()
+    self.split_sizes['test'][idx] = tmpsize/batch_size
 
-    self.x_splits[split] = vx
-    self.y_splits[split] = vy
-    self.split_sizes[split] = vx:size(1)
   end
 
-  self.split_idxs = {train=1, val=1, test=1}
+  self.split_idx1 = {train=1, val=1, test=1}
+  self.split_idx2 = {train=1, val=1, test=1}
 end
 
 
 function DataLoader:nextBatch(split)
-  local idx = self.split_idxs[split]
-  assert(idx, 'invalid split ' .. split)
-  local x = self.x_splits[split][idx]
-  local y = self.y_splits[split][idx]
-  if idx == self.split_sizes[split] then
-    self.split_idxs[split] = 1
+  local idx1 = self.split_idx1[split]
+  local idx2 = self.split_idx2[split]
+  local x = self.x_splits[split][idx1][idx2]
+  local y = self.y_splits[split][idx1][idx2]
+  if idx2 == self.split_sizes[idx2] then
+    self.split_idx2[split] = 1
+    if idx1 == self.num4padding then
+      self.split_idx1[split] = 1
+    else
+      self.split_idx1[split] = idx1 + 1
+    end
   else
-    self.split_idxs[split] = idx + 1
+    self.split_idxs[split] = idx2 + 1
   end
   return x, y
 end

@@ -76,7 +76,7 @@ class tweet:
 			length_pad = item_len
 		return self.padding(oristring, length_pad)
 
-	def process(self, num4padding):
+	def process(self, num4padding, val_frac, test_frac):
 		with open('fromfemale.txt', 'r') as f:
 			fet= f.read().split('\n')
 		with open('frommale.txt', 'r') as f:
@@ -85,10 +85,14 @@ class tweet:
 		self.addToDict(mat)
 		fet = map(lambda x: x.decode('utf-8'), fet)
 		mat = map(lambda x: x.decode('utf-8'), mat)
+		self.threshold = zeros(num4padding)
+		self.threshold[0] = self.max_len - self.min_len
+		for i in range(1:num4padding):
+			self.threshold[i] = self.threshold[i-1]/2
+		self.threshold = map(lambda x: x + self.min_len, self.threshold)
 		step = (self.max_len- self.min_len)/num4padding
 		weight_fet = int(math.ceil(len(mat)/len(fet)))
 		weight_mat = -1
-		self.threshold = [self.max_len - v * step for v in range(0, num4padding)]
 		self.threshold_count = [0 for v in range(0, num4padding)]
 		for line in fet:
 			tmplen = 2*len(line)
@@ -108,6 +112,8 @@ class tweet:
 			tmpx.fill(self.token2num[self.pad])
 			tmpy = np.empty(self.threshold_count[idx])
 			shuffleidx = range(0, self.threshold_count[idx])
+			test_idx = self.threshold_count[idx] - self.threshold_count*test_frac
+			val_idx = test_idx - self.threshold_count*val_frac
 			random.shuffle(shuffleidx)
 			tmpidx = 0
 			for line in fet:
@@ -128,8 +134,12 @@ class tweet:
 						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width
 						tmptmpidx = tmptmpidx+2
 					tmpidx += 1
-			f.create_dataset('x'+str(idx), data=tmpx)
-			f.create_dataset('y'+str(idx), data=tmpy)
+			f.create_dataset('x_train'+str(idx+1), data=tmpx[:val_idx])
+			f.create_dataset('y_train'+str(idx+1), data=tmpy[:val_idx])
+			f.create_dataset('x_val'+str(idx+1), data=tmpx[val_idx:test_idx])
+			f.create_dataset('y_val'+str(idx+1), data=tmpy[val_idx:test_idx])
+			f.create_dataset('x_test'+str(idx+1), data=tmpx[test_idx:])
+			f.create_dataset('y_test'+str(idx+1), data=tmpy[test_idx:])
 		json_data = {
 			'threshold': self.threshold,
 			'threshold_count': self.threshold_count,

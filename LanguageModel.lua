@@ -3,6 +3,7 @@ require 'nn'
 
 require 'VanillaRNN'
 require 'LSTM'
+require 'LLSTM'
 
 local utils = require 'util.utils'
 
@@ -11,14 +12,8 @@ local LM, parent = torch.class('nn.LanguageModel', 'nn.Module')
 
 
 function LM:__init(kwargs)
-  self.idx_to_token = utils.get_kwarg(kwargs, 'idx_to_token')
-  self.token_to_idx = {}
-  self.vocab_size = 0
-  for idx, token in pairs(self.idx_to_token) do
-    self.token_to_idx[token] = idx
-    self.vocab_size = self.vocab_size + 1
-  end
-
+  self.batch_size = utils.get_kwarg(kwargs, 'batch_size')
+  self.vocab_size = utils.get_kwarg(kwargs, 'vocab_size')
   self.model_type = utils.get_kwarg(kwargs, 'model_type')
   self.wordvec_dim = utils.get_kwarg(kwargs, 'wordvec_size')
   self.rnn_size = utils.get_kwarg(kwargs, 'rnn_size')
@@ -27,7 +22,7 @@ function LM:__init(kwargs)
   self.batchnorm = utils.get_kwarg(kwargs, 'batchnorm')
   self.num_styles = utils.get_kwarg(kwargs, 'num_styles')
 
-  local V, D, H = self.vocab_size, self.wordvec_dim, self.rnn_size
+  local N, V, D, H = self.batch_size, self.vocab_size, self.wordvec_dim, self.rnn_size
 
   self.net = nn.Sequential()
   self.rnns = {}
@@ -39,11 +34,15 @@ function LM:__init(kwargs)
     local prev_dim = H
     if i == 1 then prev_dim = D end
     local rnn
-    if self.model_type == 'rnn' then
-      rnn = nn.VanillaRNN(prev_dim, H)
-    elseif self.model_type == 'lstm' then
+    -- if self.model_type == 'rnn' then
+    --   rnn = nn.VanillaRNN(prev_dim, H)
+    -- elseif self.model_type == 'lstm' then
+    if (i == self.num_layers) do
+      rnn = nn.LLSTM(prev_dim, H)
+    else
       rnn = nn.LSTM(prev_dim, H)
     end
+    -- end
     rnn.remember_states = true
     table.insert(self.rnns, rnn)
     self.net:add(rnn)
@@ -61,37 +60,30 @@ function LM:__init(kwargs)
     end
   end
 
-  -- After all the RNNs run, we will have a tensor of shape (N, T, H);
+  -- After all the RNNs run, we will have a tensor of shape (N, H);
   -- we want to apply a 1D temporal convolution to predict scores for each
   -- vocab element, giving a tensor of shape (N, T, V). Unfortunately
   -- nn.TemporalConvolution is SUPER slow, so instead we will use a pair of
   -- views (N, T, H) -> (NT, H) and (NT, V) -> (N, T, V) with a nn.Linear in
   -- between. Unfortunately N and T can change on every minibatch, so we need
   -- to set them in the forward pass.
-  self.view1 = nn.View(1, 1, -1):setNumInputDims(3)
-  self.view2 = nn.View(1, -1):setNumInputDims(2)
 
-  self.net:add(self.view1)
+  -- self.view1 = nn.View(1, 1, -1):setNumInputDims(3)
+  -- self.view2 = nn.View(1, -1):setNumInputDims(2)
+
   self.net:add(nn.Linear(H, H))
-  self.net:add(nn.Sigmoid())
+  self.net:add(nn.ReLU())
   self.net:add(nn.Linear(H, H))
-  self.net:add(nn.Sigmoid())
+  self.net:add(nn.ReLU())
   self.net:add(nn.Linear(H, self.num_styles))
-  self.net:add(self.view2)
+
 end
 
 
 function LM:updateOutput(input)
-  local N, T = input:size(1), input:size(2)
-  self.view1:resetSize(N * T, -1)
-  self.view2:resetSize(N, T, -1)
-
-  for _, view_in in ipairs(self.bn_view_in) do
-    view_in:resetSize(N * T, -1)
-  end
-  for _, view_out in ipairs(self.bn_view_out) do
-    view_out:resetSize(N, T, -1)
-  end
+  -- local N, T = input:size(1), input:size(2)
+  -- self.view1:resetSize(N * T, -1)
+  -- self.view2:resetSize(N, T, -1)
 
   return self.net:forward(input)
 end

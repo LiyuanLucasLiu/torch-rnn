@@ -13,8 +13,8 @@ local cmd = torch.CmdLine()
 -- Dataset options
 cmd:option('-input_h5', 'data/tiny-shakespeare.h5')
 cmd:option('-input_json', 'data/tiny-shakespeare.json')
-cmd:option('-batch_size', 1)
-cmd:option('-seq_length', 50)
+cmd:option('-batch_size', 5)
+-- cmd:option('-seq_length', 50)
 
 -- Model options
 cmd:option('-init_from', '')
@@ -73,16 +73,13 @@ end
 
 
 -- Initialize the DataLoader and vocabulary
-local loader = DataLoader(opt)
 local vocab = utils.read_json(opt.input_json)
-local idx_to_token = {}
-for k, v in pairs(vocab.idx_to_token) do
-  idx_to_token[tonumber(k)] = v
-end
+local loader = DataLoader(opt, #vocab.threshold)
 
 -- Initialize the model and criterion
 local opt_clone = torch.deserialize(torch.serialize(opt))
-opt_clone.idx_to_token = idx_to_token
+opt_clone.vocab_size = vocab.width
+
 local model = nil
 if opt.init_from ~= '' then
   print('Initializing from ', opt.init_from)
@@ -94,20 +91,11 @@ local params, grad_params = model:getParameters()
 local crit = nn.CrossEntropyCriterion():type(dtype)
 
 -- Set up some variables we will use below
-local N, T = opt.batch_size, opt.seq_length
 local train_loss_history = {}
 local val_loss_history = {}
 local val_loss_history_it = {}
 local forward_backward_times = {}
 local init_memory_usage, memory_usage = nil, {}
-
-if opt.memory_benchmark == 1 then
-  -- This should only be enabled in GPU mode
-  assert(cutorch)
-  cutorch.synchronize()
-  local free, total = cutorch.getMemoryUsage(cutorch.getDevice())
-  init_memory_usage = total - free
-end
 
 -- Loss function that we pass to an optim method
 local function f(w)
@@ -118,20 +106,14 @@ local function f(w)
   local timer
   local x, y = loader:nextBatch('train')
   x, y = x:type(dtype), y:type(dtype)
-  if opt.speed_benchmark == 1 then
-    if cutorch then cutorch.synchronize() end
-    timer = torch.Timer()
-  end
   local scores = model:forward(x)
 
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
-  local scores_view = scores:view(N * T, -1)
-  local y_view = y:view(N * T)
-  local loss = crit:forward(scores_view, y_view)
+  local loss = crit:forward(scores, y)
 
   -- Run the Criterion and model backward to compute gradients, maybe timing it
-  local grad_scores = crit:backward(scores_view, y_view):view(N, T, -1)
+  local grad_scores = crit:backward(scores, y)
   model:backward(x, grad_scores)
   if timer then
     if cutorch then cutorch.synchronize() end
