@@ -130,7 +130,10 @@ end
 
 -- Train the model!
 local optim_config = {learningRate = opt.learning_rate}
-local num_train = loader.split_sizes['train']
+local num_train = 0
+for idx,num in pairs(loader.split_sizes['train']) do
+  num_train = num_train+num
+end
 local num_iterations = opt.max_epochs * num_train
 model:training()
 for i = 1, num_iterations do

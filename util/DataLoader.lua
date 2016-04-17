@@ -24,26 +24,26 @@ function DataLoader:__init(kwargs, num4padding)
     local vx = f:read('/x_train'..idx):all()
     local vy = f:read('/y_train'..idx):all()
     local tmpsize = vx:size(1)
-    tmpsize = tmpsize - tmpsize%batch_size
-    self.x_splits['train'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/batch_size, batch_size, -1):clone()
-    self.y_splits['train'][idx] = vy[{1, tmpsize}]:view(tmpsize/batch_size, batch_size, 1):clone()
-    self.split_sizes['train'][idx] = tmpsize/batch_size
+    tmpsize = tmpsize - tmpsize % self.batch_size
+    self.x_splits['train'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/self.batch_size, self.batch_size, -1):clone() 
+    self.y_splits['train'][idx] = vy[{{1, tmpsize}}]:view(tmpsize/self.batch_size, self.batch_size):clone()
+    self.split_sizes['train'][idx] = tmpsize/self.batch_size
     
     vx = f:read('/x_val'..idx):all()
     vy = f:read('/y_val'..idx):all()
     tmpsize = vx:size(1)
-    tmpsize = tmpsize - tmpsize%batch_size
-    self.x_splits['val'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/batch_size, batch_size, -1):clone()
-    self.y_splits['val'][idx] = vy[{1, tmpsize}]:view(tmpsize/batch_size, batch_size, 1):clone()
-    self.split_sizes['val'][idx] = tmpsize/batch_size
+    tmpsize = tmpsize - tmpsize%self.batch_size
+    self.x_splits['val'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/self.batch_size, self.batch_size, -1):clone()
+    self.y_splits['val'][idx] = vy[{{1, tmpsize}}]:view(tmpsize/self.batch_size, self.batch_size, 1):clone()
+    self.split_sizes['val'][idx] = tmpsize/self.batch_size
     
     vx = f:read('/x_test'..idx):all()
     vy = f:read('/y_test'..idx):all()
     tmpsize = vx:size(1)
-    tmpsize = tmpsize - tmpsize%batch_size
-    self.x_splits['test'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/batch_size, batch_size, -1):clone()
-    self.y_splits['test'][idx] = vy[{1, tmpsize}]:view(tmpsize/batch_size, batch_size, 1):clone()
-    self.split_sizes['test'][idx] = tmpsize/batch_size
+    tmpsize = tmpsize - tmpsize%self.batch_size
+    self.x_splits['test'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/self.batch_size, self.batch_size, -1):clone()
+    self.y_splits['test'][idx] = vy[{{1, tmpsize}}]:view(tmpsize/self.batch_size, self.batch_size, 1):clone()
+    self.split_sizes['test'][idx] = tmpsize/self.batch_size
 
   end
 
@@ -65,7 +65,7 @@ function DataLoader:nextBatch(split)
       self.split_idx1[split] = idx1 + 1
     end
   else
-    self.split_idxs[split] = idx2 + 1
+    self.split_idx2[split] = idx2 + 1
   end
   return x, y
 end

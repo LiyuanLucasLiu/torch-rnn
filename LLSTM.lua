@@ -35,6 +35,7 @@ function layer:__init(input_dim, hidden_dim)
   self.buffer3 = torch.Tensor() -- This will be (1, 4H)
   self.grad_a_buffer = torch.Tensor() -- This will be (N, 4H)
 
+  self.output_rem = torch.Tensor()
   self.h0 = torch.Tensor()
   self.c0 = torch.Tensor()
   self.remember_states = false
@@ -276,6 +277,7 @@ function layer:clearState()
   self.grad_h0:set()
   self.grad_x:set()
   self.output_rem:set()
+  self.output:set()
 end
 
 

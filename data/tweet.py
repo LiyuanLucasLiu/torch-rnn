@@ -109,7 +109,7 @@ class tweet:
 		f = h5py.File('male_female.h5', 'w')
 		for idx in range(0, num4padding):
 			tmpx = np.empty((self.threshold_count[idx], self.threshold[idx]))
-			tmpx.fill(self.token2num[self.pad])
+			tmpx.fill(self.token2num[self.pad]+1)
 			tmpy = np.empty(self.threshold_count[idx])
 			shuffleidx = range(0, self.threshold_count[idx])
 			test_idx = self.threshold_count[idx] - int(self.threshold_count[idx]*test_frac)
@@ -121,8 +121,8 @@ class tweet:
 					tmptmpidx = 0
 					tmpy[shuffleidx[tmpidx]] = 1
 					for item in line:
-						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width
-						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width
+						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
+						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
 						tmptmpidx = tmptmpidx+2
 					tmpidx += 1
 			for line in mat:
@@ -130,8 +130,8 @@ class tweet:
 					tmptmpidx = 0
 					tmpy[shuffleidx[tmpidx]] = 2
 					for item in line:
-						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width
-						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width
+						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
+						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
 						tmptmpidx = tmptmpidx+2
 					tmpidx += 1
 			f.create_dataset('x_train'+str(idx+1), data=tmpx[:val_idx])
