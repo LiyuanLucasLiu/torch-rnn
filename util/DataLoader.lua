@@ -20,9 +20,9 @@ function DataLoader:__init(kwargs, num4padding)
   self.split_sizes = {train = {}, test = {}, val = {}}
 
   for idx=1,num4padding do
-
-    local vx = f:read('/x_train'..idx):all()
-    local vy = f:read('/y_train'..idx):all()
+    local revidx = num4padding-idx+1
+    local vx = f:read('/x_train'..revidx):all()
+    local vy = f:read('/y_train'..revidx):all()
     local tmpsize = vx:size(1)
     tmpsize = tmpsize - tmpsize % self.batch_size
     self.x_splits['train'][idx] = vx[{{1, tmpsize}, {}}]:view(tmpsize/self.batch_size, self.batch_size, -1):clone() 

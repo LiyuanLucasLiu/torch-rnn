@@ -91,7 +91,7 @@ class tweet:
 			self.threshold[i] = int(self.threshold[i-1]/6)
 		self.threshold = [648, 120, 30, 10]# map(lambda x: x + self.min_len, self.threshold)
 		#step = (self.max_len- self.min_len)/num4padding
-		self.weight_fet = len(mat)/len(fet)
+		self.weight_fet = float(len(fet))/len(mat)
 		self.weight_mat = 1
 		self.threshold_count = [0, 0, 0, 0] #[0 for v in range(0, num4padding)]
 		for line in fet:

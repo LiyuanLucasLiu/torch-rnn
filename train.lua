@@ -171,14 +171,14 @@ for i = 1, num_iterations do
     model:resetStates()
     local num_val = loader.split_sizes['val']
     local val_loss = 0
-    for j = 1, num_val do
-      local xv, yv = loader:nextBatch('val')
-      xv = xv:type(dtype)
-      yv = yv:type(dtype):view(N * T)
-      local scores = model:forward(xv):view(N * T, -1)
-      val_loss = val_loss + crit:forward(scores, yv)
-    end
-    val_loss = val_loss / num_val
+    --for j = 1, num_val do
+    --  local xv, yv = loader:nextBatch('val')
+    --  xv = xv:type(dtype)
+    --  yv = yv:type(dtype):view(N * T)
+    --  local scores = model:forward(xv):view(N * T, -1)
+    --  val_loss = val_loss + crit:forward(scores, yv)
+    --end
+    --val_loss = val_loss / num_val
     print('val_loss = ', val_loss)
     table.insert(val_loss_history, val_loss)
     table.insert(val_loss_history_it, i)
