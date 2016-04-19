@@ -53,16 +53,16 @@ end
 
 
 function DataLoader:nextBatch(split)
-  local idx1 = self.split_idx1[split]
   local idx2 = self.split_idx2[split]
+  local idx1 = self.split_idx1[split]
   local x = self.x_splits[split][idx1][idx2]
   local y = self.y_splits[split][idx1][idx2]
-  if idx2 == self.split_sizes[split] then
+  if idx2 == self.split_sizes[split][idx1] then
     self.split_idx2[split] = 1
     if idx1 == self.num4padding then
       self.split_idx1[split] = 1
     else
-      self.split_idx1[split] = idx1 + 1
+      self.split_idx1[split] = 1--idx1 + 1
     end
   else
     self.split_idx2[split] = idx2 + 1
