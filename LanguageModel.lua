@@ -75,7 +75,7 @@ function LM:__init(kwargs)
   self.net:add(nn.ReLU())
   self.net:add(nn.Linear(H, H))
   self.net:add(nn.ReLU())
-  self.net:add(nn.Linear(H, self.num_styles))
+  self.net:add(nn.Linear(H, 1))--self.num_styles))
 
 end
 

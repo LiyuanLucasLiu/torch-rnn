@@ -106,14 +106,14 @@ class tweet:
 				if(idx==num4padding or tmplen > self.threshold[idx]):
 					self.threshold_count[idx-1] += 1
 					break
-		f = h5py.File('male_female.h5', 'w')
+		f = h5py.File('male_female_margin.h5', 'w')
 		for idx in range(0, num4padding):
 			tmpx = np.empty((self.threshold_count[idx], self.threshold[idx]))
 			tmpx.fill(self.token2num[self.pad]+1)
 			tmpy = np.empty(self.threshold_count[idx])
 			shuffleidx = range(0, self.threshold_count[idx])
 			test_idx = self.threshold_count[idx] - int(self.threshold_count[idx]*test_frac)
-			val_idx = test_idx - (self.threshold_count[idx]*val_frac)
+			val_idx = test_idx - int(self.threshold_count[idx]*val_frac)
 			random.shuffle(shuffleidx)
 			tmpidx = 0
 			for line in fet:
@@ -128,7 +128,7 @@ class tweet:
 			for line in mat:
 				if (idx+1==num4padding or 2*len(line) > self.threshold[idx+1]) and 2*len(line) <= self.threshold[idx]:
 					tmptmpidx = 0
-					tmpy[shuffleidx[tmpidx]] = 2
+					tmpy[shuffleidx[tmpidx]] = -1
 					for item in line:
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
 						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
@@ -148,7 +148,7 @@ class tweet:
 			'weight_fet': self.weight_fet,
 			'weight_mat': self.weight_mat,
 		}
-		with open('male_female.json', 'w') as f:
+		with open('male_female_margin.json', 'w') as f:
 			json.dump(json_data, f)
 
 	def saveas(self, address):

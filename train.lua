@@ -87,8 +87,8 @@ local params, grad_params = model:getParameters()
 local weight = torch.Tensor(2)
 weight[1] = vocab.weight_fet
 weight[2] = vocab.weight_mat
-local crit = nn.CrossEntropyCriterion(weight):type(dtype)
-
+--local crit = nn.CrossEntropyCriterion(weight):type(dtype)
+local crit = nn.SoftMarginCriterion():type(dtype)
 -- Set up some variables we will use below
 local train_loss_history = {}
 local val_loss_history = {}
@@ -105,14 +105,13 @@ local function f(w)
   local timer
   local x, y = loader:nextBatch('train')
   x, y = x:type(dtype), y:type(dtype)
-  local scores = model:forward(x)
-
+  local scores = model:forward(x):squeeze():type(dtype)
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
   local loss = crit:forward(scores, y)
 
   -- Run the Criterion and model backward to compute gradients, maybe timing it
-  local grad_scores = crit:backward(scores, y)
+  local grad_scores = crit:backward(scores, y):view(-1,1)
   model:backward(x, grad_scores)
   if timer then
     if cutorch then cutorch.synchronize() end
