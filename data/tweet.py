@@ -76,7 +76,7 @@ class tweet:
 			length_pad = item_len
 		return self.padding(oristring, length_pad)
 
-	def process(self, num4padding, val_frac, test_frac):
+	def process(self, num4padding, val_frac, test_frac, first_class_label = 1, second_class_label = -1):
 		with open('fromfemale.txt', 'r') as f:
 			fet= f.read().split('\n')
 		with open('frommale.txt', 'r') as f:
@@ -118,22 +118,38 @@ class tweet:
 			tmpidx = 0
 			for line in fet:
 				if (idx+1==num4padding or 2*len(line) > self.threshold[idx+1]) and 2*len(line) <= self.threshold[idx]:
-					tmptmpidx = 0
-					tmpy[shuffleidx[tmpidx]] = 1
+					# ordinary order
+					# tmptmpidx = 0
+					# reverse order
+					tmptmpidx = self.threshold[idx] - 1
+					tmpy[shuffleidx[tmpidx]] = first_class_label
 					for item in line:
+						# ordinary order
+						# tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
+						# tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
+						# tmptmpidx = tmptmpidx+2
+						# reverse order
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
-						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
-						tmptmpidx = tmptmpidx+2
-					tmpidx += 1
+						tmpx[shuffleidx[tmpidx]][tmptmpidx-1] = self.token2num[item]/self.width + 1
+						tmptmpidx = tmptmpidx-2
+						tmpidx += 1
 			for line in mat:
 				if (idx+1==num4padding or 2*len(line) > self.threshold[idx+1]) and 2*len(line) <= self.threshold[idx]:
-					tmptmpidx = 0
-					tmpy[shuffleidx[tmpidx]] = -1
+					# ordinary order
+					# tmptmpidx = 0
+					# reverse order
+					tmptmpidx = self.threshold[idx] - 1
+					tmpy[shuffleidx[tmpidx]] = second_class_label
 					for item in line:
+						# ordinary order
+						# tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
+						# tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
+						# tmptmpidx = tmptmpidx+2
+						# reverse order
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
-						tmpx[shuffleidx[tmpidx]][tmptmpidx+1] = self.token2num[item]/self.width + 1
-						tmptmpidx = tmptmpidx+2
-					tmpidx += 1
+						tmpx[shuffleidx[tmpidx]][tmptmpidx-1] = self.token2num[item]/self.width + 1
+						tmptmpidx = tmptmpidx-2
+						tmpidx += 1
 			f.create_dataset('x_train'+str(idx+1), data=tmpx[:val_idx])
 			f.create_dataset('y_train'+str(idx+1), data=tmpy[:val_idx])
 			f.create_dataset('x_val'+str(idx+1), data=tmpx[val_idx:test_idx])
