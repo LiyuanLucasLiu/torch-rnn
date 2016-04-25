@@ -2,8 +2,8 @@ require 'torch'
 require 'nn'
 require 'optim'
 
-require 'LanguageModel'
-require 'util.DataLoader'
+require 'preLanguageModel'
+require 'util.preDataLoader'
 
 local utils = require 'util.utils'
 local unpack = unpack or table.unpack
@@ -68,9 +68,9 @@ else
 end
 
 
--- Initialize the DataLoader and vocabulary
+-- Initialize the preDataLoader and vocabulary
 local vocab = utils.read_json(opt.input_json)
-local loader = DataLoader(opt, #vocab.threshold)
+local loader = preDataLoader(opt, #vocab.threshold)
 
 -- Initialize the model and criterion
 local opt_clone = torch.deserialize(torch.serialize(opt))
@@ -81,20 +81,17 @@ if opt.init_from ~= '' then
   print('Initializing from ', opt.init_from)
   model = torch.load(opt.init_from).model:type(dtype)
 else
-  model = nn.LanguageModel(opt_clone):type(dtype)
+  model = nn.preLanguageModel(opt_clone):type(dtype)
 end
 local params, grad_params = model:getParameters()
-local weight = torch.Tensor(2)
-weight[1] = vocab.weight_fet
-weight[2] = vocab.weight_mat
---local crit = nn.CrossEntropyCriterion(weight):type(dtype)
-local crit = nn.SoftMarginCriterion():type(dtype)
+local N = opt.batch_size
+local crit = nn.CrossEntropyCriterion():type(dtype)
+-- local crit = nn.SoftMarginCriterion():type(dtype)
 -- Set up some variables we will use below
 local train_loss_history = {}
 local val_loss_history = {}
 local val_loss_history_it = {}
 local forward_backward_times = {}
-local init_memory_usage, memory_usage = nil, {}
 
 -- Loss function that we pass to an optim method
 local function f(w)
@@ -104,21 +101,18 @@ local function f(w)
   -- Get a minibatch and run the model forward, maybe timing it
   local timer
   local x, y = loader:nextBatch('train')
+  local T = x:size(2)
   x, y = x:type(dtype), y:type(dtype)
-  local scores = model:forward(x):squeeze():type(dtype)
+  local scores = model:forward(x)
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
-  local loss = crit:forward(scores, y)
+  local scores_vew = scores:view(N * T, -1)
+  local v_view = v:view(N * T)
+  local loss = crit:forward(scores_view, y_view)
 
   -- Run the Criterion and model backward to compute gradients, maybe timing it
-  local grad_scores = crit:backward(scores, y):view(-1,1)
+  local grad_scores = crit:backward(scores_view, y_view):view(N, T, -1)
   model:backward(x, grad_scores)
-  if timer then
-    if cutorch then cutorch.synchronize() end
-    local time = timer:time().real
-    print('Forward / Backward pass took ', time)
-    table.insert(forward_backward_times, time)
-  end
 
   if opt.grad_clip > 0 then
     grad_params:clamp(-opt.grad_clip, opt.grad_clip)
@@ -173,8 +167,8 @@ for i = 1, num_iterations do
     for j = 1, num_val do
      local xv, yv = loader:nextBatch('val')
      xv = xv:type(dtype)
-     yv = yv:type(dtype)
-     local scores = model:forward(xv):squeeze():type(dtype)
+     yv = yv:type(dtype):view(N * T)
+     local scores = model:forward(xv):view(N * T, -1)
      val_loss = val_loss + crit:forward(scores, yv)
     end
     val_loss = val_loss / num_val
