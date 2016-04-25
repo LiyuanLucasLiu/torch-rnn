@@ -106,7 +106,7 @@ class tweet:
 				if(idx==num4padding or tmplen > self.threshold[idx]):
 					self.threshold_count[idx-1] += 1
 					break
-		f = h5py.File('male_female_margin.h5', 'w')
+		f = h5py.File('male_female_margin_reverse.h5', 'w')
 		for idx in range(0, num4padding):
 			tmpx = np.empty((self.threshold_count[idx], self.threshold[idx]))
 			tmpx.fill(self.token2num[self.pad]+1)
@@ -132,7 +132,7 @@ class tweet:
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
 						tmpx[shuffleidx[tmpidx]][tmptmpidx-1] = self.token2num[item]/self.width + 1
 						tmptmpidx = tmptmpidx-2
-						tmpidx += 1
+					tmpidx += 1
 			for line in mat:
 				if (idx+1==num4padding or 2*len(line) > self.threshold[idx+1]) and 2*len(line) <= self.threshold[idx]:
 					# ordinary order
@@ -149,7 +149,7 @@ class tweet:
 						tmpx[shuffleidx[tmpidx]][tmptmpidx] = self.token2num[item]%self.width + 1
 						tmpx[shuffleidx[tmpidx]][tmptmpidx-1] = self.token2num[item]/self.width + 1
 						tmptmpidx = tmptmpidx-2
-						tmpidx += 1
+					tmpidx += 1
 			f.create_dataset('x_train'+str(idx+1), data=tmpx[:val_idx])
 			f.create_dataset('y_train'+str(idx+1), data=tmpy[:val_idx])
 			f.create_dataset('x_val'+str(idx+1), data=tmpx[val_idx:test_idx])
@@ -164,7 +164,7 @@ class tweet:
 			'weight_fet': self.weight_fet,
 			'weight_mat': self.weight_mat,
 		}
-		with open('male_female_margin.json', 'w') as f:
+		with open('male_female_margin_reverse.json', 'w') as f:
 			json.dump(json_data, f)
 
 	def saveas(self, address):
