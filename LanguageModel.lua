@@ -26,14 +26,54 @@ function LM:__init(kwargs)
   self.dropout = utils.get_kwarg(kwargs, 'dropout')
   self.batchnorm = utils.get_kwarg(kwargs, 'batchnorm')
 
+  self.channelSize = utils.get_kwarg(kwargs, 'channelSize')
+  self.dropProb = utils.get_kwarg(kwargs, 'dropoutProb')
+  self.kernelSize = utils.get_kwarg(kwargs, 'kernelSize')
+  self.kernelStride = utils.get_kwarg(kwargs, 'kernelStride')
+  self.padding = utils.get_kwarg(kwargs, 'padding')
+  self.batchNorm = utils.get_kwarg(kwargs, 'batchnorm')
+  self.poolSize = utils.get_kwarg(kwargs, 'poolSize')
+  self.poolStride = utils.get_kwarg(kwargs, 'poolStride')
+  self.activation = utils.get_kwarg(kwargs, 'activation')
+
   local V, D, H = self.vocab_size, self.wordvec_dim, self.rnn_size
 
   self.net = nn.Sequential()
   self.rnns = {}
-  self.bn_view_in = {}
-  self.bn_view_out = {}
 
-  self.net:add(nn.LookupTable(V, D))
+  inputSize = 1
+  depth = 1
+  for i = 1, #self.channelSize do 
+    if self.dropProb[depth] > 0 then
+      self.net:add(nn.SpatialDropout(self.dropProb[depth]))
+    end
+    self.net:add(nn.SpatialConvolution(
+      inputSize, self.channelSize[i],
+      self.kernelSize[i], self.kernelSize[i],
+      self.kernelStride[i], self.kernelStride[i],
+      self.padding and math.floor(self.kernelSize[i]/2) or 0
+    ))
+    if self.batchNorm then
+      self.net:add(nn.SpatialBatchNormalization(self.channelSize))
+    end
+    self.net:add(nn[self.activation]())
+    if self.poolSize[i] and self.poolSize[i] > 0 then
+      self.net:add(nn.SpatialMaxPooling(
+        self.poolSize[i], self.poolSize[i],
+        self.poolStride[i] or self.poolSize[i],
+        self.poolStride[i] or self.poolsize[i]
+      ))
+    end
+    inputSize = self.channelSize[i]
+    depth = depth + 1
+  end
+  self.view3 = nn.View(-1):setNumInputDims(2)
+  self.view4 = nn.View(1, 1, -1):setNumInputDims(2)
+
+  self.net:add(self.view3)
+  self.net:add(nn.Linear())
+  self.net:add(self.view4)
+
   for i = 1, self.num_layers do
     local prev_dim = H
     if i == 1 then prev_dim = D end
