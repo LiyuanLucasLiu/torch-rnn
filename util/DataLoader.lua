@@ -18,19 +18,38 @@ function DataLoader:__init(kwargs)
   splits.train = f:read('/train'):all()
   splits.val = f:read('/val'):all()
   splits.test = f:read('/test'):all()
+  self.font = f:read('/font'):all()
 
   self.x_splits = {}
   self.y_splits = {}
   self.split_sizes = {}
   for split, v in pairs(splits) do
-    local num = v:nElement()
+    local shape = v:size()
+    local num = shape[1]
     local extra = num % (N * T)
 
     -- Chop out the extra bits at the end to make it evenly divide
-    local vx = v[{{1, num - extra}}]:view(N, -1, T):transpose(1, 2):clone()
-    local vy = v[{{2, num - extra + 1}}]:view(N, -1, T):transpose(1, 2):clone()
+    local vx = v[{{1, num - extra}, {}, {}}]:view(N, -1, T, shape[2], shape[3]):transpose(1, 2):clone()
+    -- local vy = v[{{2, num - extra + 1}, {}, {}}]:view(N, -1, T, shape[2], shape[3]):transpose(1, 2):clone()
 
     self.x_splits[split] = vx
+    -- self.y_splits[split] = vy
+    self.split_sizes[split] = vx:size(1)
+  end
+
+  splits.train = f:read('/train_1d'):all()
+  splits.val = f:read('/val_1d'):all()
+  splits.test = f:read('/test_1d'):all()
+  for split, v in pairs(splits) do
+    local shape = v:size()
+    local num = shape[1]
+    local extra = num % (N * T)
+
+    -- Chop out the extra bits at the end to make it evenly divide
+    -- local vx = v[{{1, num - extra}, {}, {}}]:view(N, -1, T, shape[2], shape[3]):transpose(1, 2):clone()
+    local vy = v[{{2, num - extra + 1}}]:view(N, -1, T):transpose(1, 2):clone()
+
+    -- self.x_splits[split] = vx
     self.y_splits[split] = vy
     self.split_sizes[split] = vx:size(1)
   end

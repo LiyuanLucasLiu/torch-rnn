@@ -25,6 +25,17 @@ cmd:option('-num_layers', 2)
 cmd:option('-dropout', 0)
 cmd:option('-batchnorm', 0)
 
+-- CNN options
+cmd:option('channelSize', '{30, 30}')
+cmd:option('dropoutProb', '{0.2, 0.2, 0.2, 0.2}')
+cmd:option('kernelSize', '{5, 5, 5, 5}')
+cmd:option('kernelStride', '{1, 1, 1, 1}')
+cmd:option('padding', true)
+cmd:option('batchnorm', true)
+cmd:option('poolSize', {2, 2, 2, 2})
+cmd:option('poolStride', {2, 2, 2, 2})
+cmd:option('activation', 'ReLU', 'transfer function like ReLU, Tanh, Sigmoid')
+
 -- Optimization options
 cmd:option('-max_epochs', 50)
 cmd:option('-learning_rate', 2e-3)
@@ -74,14 +85,18 @@ end
 -- Initialize the DataLoader and vocabulary
 local loader = DataLoader(opt)
 local vocab = utils.read_json(opt.input_json)
-local idx_to_token = {}
-for k, v in pairs(vocab.idx_to_token) do
-  idx_to_token[tonumber(k)] = v
-end
+-- local idx_to_token = {}
+-- for k, v in pairs(vocab.idx_to_token) do
+--   idx_to_token[tonumber(k)] = v
+-- end
 
 -- Initialize the model and criterion
 local opt_clone = torch.deserialize(torch.serialize(opt))
-opt_clone.idx_to_token = idx_to_token
+opt_clone.vocab_size = vocab.char_set_size
+opt_clone.weight = loader.font:size(2)
+opt_clone.height = loader.font:size(3)
+
+
 local model = nil
 if opt.init_from ~= '' then
   print('Initializing from ', opt.init_from)
