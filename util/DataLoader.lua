@@ -36,7 +36,7 @@ function DataLoader:__init(kwargs)
     -- self.y_splits[split] = vy
     self.split_sizes[split] = vx:size(1)
   end
-
+  splits = {}
   splits.train = f:read('/train_1d'):all()
   splits.val = f:read('/val_1d'):all()
   splits.test = f:read('/test_1d'):all()
@@ -51,10 +51,9 @@ function DataLoader:__init(kwargs)
 
     -- self.x_splits[split] = vx
     self.y_splits[split] = vy
-    self.split_sizes[split] = vx:size(1)
   end
 
-  self.split_idxs = {train=1, val=1, test=1}
+  self.split_idxs = {train=1170, val=1, test=1}
 end
 
 
