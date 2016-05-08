@@ -6,20 +6,12 @@ import codecs
 parser = argparse.ArgumentParser()
 parser.add_argument('--input_txt', default = '../data/wiki0.txt')
 parser.add_argument('--input_font', default = './dict.np')
-<<<<<<< HEAD
 parser.add_argument('--output_h5', default = '../data/wiki0.h5')
 parser.add_argument('--output_font', default = '../data/font.h5')
 parser.add_argument('--output_json', default = '../data/wiki0.js')
 parser.add_argument('--val_frac', type = float, default = 0.01)
 parser.add_argument('--test_frac', type = float, default = 0.01)
 parser.add_argument('--train_frac', type = float, default = 0.1)
-=======
-parser.add_argument('--output_h5', default = '../data/wiki0_lar.h5')
-parser.add_argument('--output_json', default = '../data/wiki0_lar.js')
-parser.add_argument('--val_frac', type = float, default = 0.004)
-parser.add_argument('--test_frac', type = float, default = 0.004)
-parser.add_argument('--train_frac', type = float, default = 0.04)
->>>>>>> d91a161ce98bfdd94b6d07028fa61d0af7612daf
 parser.add_argument('--quiet', action='store_true')
 parser.add_argument('--encoding', default = 'utf-8')
 parser.add_argument('--threshold', default = 50)
