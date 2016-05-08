@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--input_txt', default = '../data/wiki0.txt')
 parser.add_argument('--input_font', default = './dict.np')
 parser.add_argument('--output_h5', default = '../data/wiki0.h5')
+parser.add_argument('--output_font', default = '../data/font.h5')
 parser.add_argument('--output_json', default = '../data/wiki0.js')
 parser.add_argument('--val_frac', type = float, default = 0.01)
 parser.add_argument('--test_frac', type = float, default = 0.01)
@@ -78,8 +79,12 @@ split_idx, cur_idx = 0, 0
 with codecs.open(args.input_txt, 'r', args.encoding) as f:
 	for line in f:
 		for char in line:
+			if char == 0x0020:
+				char = 0x3000
+			if char > 0x0020 and char <= 0x007e:
+				char += 0xfee0i
 			if char not in cd:
-				splits[split_idx][cur_idx] = font[cd[u'\n']]
+				splits[split_idx][cur_idx] = font[81]
 				splits_1d[split_idx][cur_idx] = 0
 			else:	
 				splits[split_idx][cur_idx] = font[cd[char]]
@@ -101,6 +106,9 @@ with h5py.File(args.output_h5, 'w') as f:
 	f.create_dataset('val_1d', data=val)
 	f.create_dataset('test_1d', data=test)
 	f.create_dataset('font', data=font)
+
+with h5py.File(args.output_h5, 'w') as f:
+	f.create_dataset('font', data = font)
 
 json_data = {
 	'cd':cd,

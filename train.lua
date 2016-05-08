@@ -1,5 +1,6 @@
 require 'torch'
 require 'nn'
+require 'hdf5'
 require 'optim'
 
 require 'LanguageModel'
@@ -11,6 +12,7 @@ local unpack = unpack or table.unpack
 local cmd = torch.CmdLine()
 
 -- Dataset options
+cmd:option('-input_font', 'data/font.h5')
 cmd:option('-input_h5', 'data/tiny-shakespeare.h5')
 cmd:option('-input_json', 'data/tiny-shakespeare.json')
 cmd:option('-batch_size', 50)
@@ -85,8 +87,9 @@ end
 -- Initialize the DataLoader and vocabulary
 local loader = DataLoader(opt)
 local vocab = utils.read_json(opt.input_json)
--- local idx_to_token = {}
--- for k, v in pairs(vocab.idx_to_token) do
+local idx_to_token = {}
+-----------------------------------------------
+-- for k, v in pairs(vocab.cc) do
 --   idx_to_token[tonumber(k)] = v
 -- end
 
@@ -95,6 +98,8 @@ local opt_clone = torch.deserialize(torch.serialize(opt))
 opt_clone.vocab_size = vocab.char_set_size
 opt_clone.weight = loader.font:size(2)
 opt_clone.height = loader.font:size(3)
+opt_clone.char2dig = vocab.cd
+opt_clone.idx2char = idx_to_token
 
 
 local model = nil
@@ -106,6 +111,8 @@ else
 end
 local params, grad_params = model:getParameters()
 local crit = nn.CrossEntropyCriterion():type(dtype)
+local softmax = nn.LogSoftMax()
+local cost = nn.ClassNLLCriterion()
 
 -- Set up some variables we will use below
 local N, T = opt.batch_size, opt.seq_length
@@ -217,10 +224,11 @@ for i = 1, num_iterations do
       xv = xv:type(dtype)
       yv = yv:type(dtype):view(N * T)
       local scores = model:forward(xv):view(N * T, -1)
-      val_loss = val_loss + crit:forward(scores, yv)
+      local logscores = softmax:forward(scores)
+      val_loss = val_loss + loss:forward(logscores, yv)
     end
     val_loss = val_loss / num_val
-    print('val_loss = ', val_loss)
+    print('val_loss = ', torch.exp(val_loss))
     table.insert(val_loss_history, val_loss)
     table.insert(val_loss_history_it, i)
     model:resetStates()
@@ -250,6 +258,6 @@ for i = 1, num_iterations do
     torch.save(filename, checkpoint)
     model:type(dtype)
     params, grad_params = model:getParameters()
-    collectgarbage()
+    --collectgarbage()
   end
 end
