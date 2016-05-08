@@ -12,31 +12,35 @@ local unpack = unpack or table.unpack
 local cmd = torch.CmdLine()
 
 -- Dataset options
+<<<<<<< HEAD
 cmd:option('-input_font', 'data/font.h5')
 cmd:option('-input_h5', 'data/tiny-shakespeare.h5')
 cmd:option('-input_json', 'data/tiny-shakespeare.json')
+=======
+cmd:option('-input_h5', 'data/wiki0.h5')
+cmd:option('-input_json', 'data/wiki0.js')
+>>>>>>> d91a161ce98bfdd94b6d07028fa61d0af7612daf
 cmd:option('-batch_size', 50)
 cmd:option('-seq_length', 50)
 
 -- Model options
 cmd:option('-init_from', '')
 cmd:option('-model_type', 'lstm')
-cmd:option('-wordvec_size', 64)
-cmd:option('-rnn_size', 128)
-cmd:option('-num_layers', 2)
-cmd:option('-dropout', 0)
-cmd:option('-batchnorm', 0)
+cmd:option('-wordvec_size', 200)
+cmd:option('-rnn_size', 256)
+cmd:option('-num_layers', 3)
+cmd:option('-dropout', 1)
+cmd:option('-batchnorm', 1)
 
 -- CNN options
-cmd:option('channelSize', '{30, 30}')
-cmd:option('dropoutProb', '{0.2, 0.2, 0.2, 0.2}')
-cmd:option('kernelSize', '{5, 5, 5, 5}')
-cmd:option('kernelStride', '{1, 1, 1, 1}')
-cmd:option('padding', true)
-cmd:option('batchnorm', true)
-cmd:option('poolSize', {2, 2, 2, 2})
-cmd:option('poolStride', {2, 2, 2, 2})
-cmd:option('activation', 'ReLU', 'transfer function like ReLU, Tanh, Sigmoid')
+cmd:option('-channelSize', {32, 64, 128})
+cmd:option('-dropoutProb', {0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2})
+cmd:option('-kernelSize', {5, 5, 5})
+cmd:option('-kernelStride', {1, 1, 1})
+cmd:option('-padding', true)
+cmd:option('-poolSize', {2, 2, 2})
+cmd:option('-poolStride', {2, 2, 2})
+cmd:option('-activation', 'ReLU', 'transfer function like ReLU, Tanh, Sigmoid')
 
 -- Optimization options
 cmd:option('-max_epochs', 50)
@@ -47,7 +51,7 @@ cmd:option('-lr_decay_factor', 0.5)
 
 -- Output options
 cmd:option('-print_every', 1)
-cmd:option('-checkpoint_every', 1000)
+cmd:option('-checkpoint_every', 69999)
 cmd:option('-checkpoint_name', 'cv/checkpoint')
 
 -- Benchmark options
@@ -144,13 +148,18 @@ local function f(w)
     timer = torch.Timer()
   end
   local scores = model:forward(x)
-
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
   local scores_view = scores:view(N * T, -1)
   local y_view = y:view(N * T)
+  --print(6)
   local loss = crit:forward(scores_view, y_view)
-
+  --print(7) 
+  -- debug information 
+  --if loss < 0.5 then
+  --  print(y_view)
+  --  print(scores_view)
+  --end
   -- Run the Criterion and model backward to compute gradients, maybe timing it
   local grad_scores = crit:backward(scores_view, y_view):view(N, T, -1)
   model:backward(x, grad_scores)
@@ -208,8 +217,7 @@ for i = 1, num_iterations do
     local args = {msg, float_epoch, opt.max_epochs, i, num_iterations, loss[1]}
     print(string.format(unpack(args)))
   end
-
-  -- Maybe save a checkpoint
+    -- Maybe save a checkpoint
   local check_every = opt.checkpoint_every
   if (check_every > 0 and i % check_every == 0) or i == num_iterations then
     -- Evaluate loss on the validation set. Note that we reset the state of

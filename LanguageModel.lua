@@ -49,6 +49,7 @@ function LM:__init(kwargs)
 
   -- input layers
   self.net = nn.Sequential()
+  self.rnns = {}
   self.view0 = nn.View(-1, 1, self.weight_input, self.height_input):setNumInputDims(4)
   self.net:add(self.view0)
 
@@ -67,7 +68,7 @@ function LM:__init(kwargs)
     ))
      
     if self.batchNorm then
-      self.net:add(nn.SpatialBatchNormalization(self.channelSize))
+      self.net:add(nn.SpatialBatchNormalization(self.channelSize[i]))
     end
     self.net:add(nn[self.activation]())
     if self.poolSize[i] and self.poolSize[i] > 0 then
@@ -82,12 +83,12 @@ function LM:__init(kwargs)
   end
 
   -- calcuate output size
-  local tmp = torch.zeros(1, self.weight_input, self.height_input)
+  local tmp = torch.zeros(1, 1, self.weight_input, self.height_input)
   local tmp2 = self.net:forward(tmp)
-  self.plane_output = tmp2:size(1)
-  self.weight_output = tmp2:size(2)
-  self.height_output = tmp2:size(3)
-  self.view3 = nn.View(-1):setNumInputDims(3)
+  self.plane_output = tmp2:size(2)
+  self.weight_output = tmp2:size(3)
+  self.height_output = tmp2:size(4)
+  self.view3 = nn.View(-1, self.weight_output*self.height_output*self.plane_output)
   self.view4 = nn.View(1, 1, -1):setNumInputDims(2)
 
   -- highway layers
@@ -103,7 +104,7 @@ function LM:__init(kwargs)
   self.net:add(self.view4)
   depth = depth + 1
 
-  -- rnn layers
+ -- rnn layers
   for i = 1, self.num_layers do
     local prev_dim = H
     if i == 1 then prev_dim = D end
@@ -116,7 +117,7 @@ function LM:__init(kwargs)
     rnn.remember_states = true
     table.insert(self.rnns, rnn)
     self.net:add(rnn)
-    if self.batchnorm == 1 then
+    if false then --self.batchnorm == 1 then
       local view_in = nn.View(1, 1, -1):setNumInputDims(3)
       table.insert(self.bn_view_in, view_in)
       self.net:add(view_in)
@@ -126,7 +127,7 @@ function LM:__init(kwargs)
       self.net:add(view_out)
     end
     if self.dropout and (self.dropProb[depth] or 0) > 0 then
-      self.net:add(nn.Dropout(self.dropPorb[depth]))
+      self.net:add(nn.Dropout(self.dropProb[depth]))
     end
     depth = depth + 1
   end
@@ -153,12 +154,12 @@ function LM:updateOutput(input)
   self.view2:resetSize(N, T, -1)
   self.view4:resetSize(N, T, -1)
 
-  for _, view_in in ipairs(self.bn_view_in) do
-    view_in:resetSize(N * T, -1)
-  end
-  for _, view_out in ipairs(self.bn_view_out) do
-    view_out:resetSize(N, T, -1)
-  end
+  --for _, view_in in ipairs(self.bn_view_in) do
+  --  view_in:resetSize(N * T, -1)
+  --end
+  --for _, view_out in ipairs(self.bn_view_out) do
+  --  view_out:resetSize(N, T, -1)
+  --end
 
   return self.net:forward(input)
 end
