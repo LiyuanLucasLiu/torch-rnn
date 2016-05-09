@@ -34,7 +34,7 @@ cmd:option('-lr_decay_factor', 0.5)
 
 -- Output options
 cmd:option('-print_every', 1)
-cmd:option('-checkpoint_every', 1000)
+cmd:option('-checkpoint_every', 2000)
 cmd:option('-checkpoint_name', 'cv/checkpoint')
 
 -- Benchmark options
