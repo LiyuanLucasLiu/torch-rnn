@@ -208,7 +208,7 @@ for i = start_i + 1, num_iterations do
       yv = yv:type(dtype):view(N * T)
       local scores = model:forward(xv):view(N * T, -1)
       local logscores = softmax:forward(scores)
-      val_loss = val_loss + crit:forward(logscores, yv)
+      val_loss = val_loss + loss:forward(logscores, yv)
     end
     val_loss = val_loss / num_val
     print('val_loss = ', torch.exp(val_loss))
