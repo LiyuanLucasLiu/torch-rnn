@@ -20,6 +20,7 @@ cmd:option('-seq_length', 50)
 
 -- Model options
 cmd:option('-init_from', '')
+cmd:option('-reset_iterations', 1)
 cmd:option('-model_type', 'lstm')
 cmd:option('-wordvec_size', 200)
 cmd:option('-rnn_size', 256)
@@ -102,9 +103,14 @@ opt_clone.idx2char = idx_to_token
 torch.save('opt_clone.t7', opt_clone)
 
 local model = nil
+local start_i = 0
 if opt.init_from ~= '' then
   print('Initializing from ', opt.init_from)
-  model = torch.load(opt.init_from).model:type(dtype)
+  local checkpoint = torch.load(opt.init_from)
+  model = checkpoint.model:type(dtype)
+  if opt.reset_iterations == 0 then
+    start_i = checkpoint.i
+  end
 else
   model = nn.LanguageModel(opt_clone):type(dtype)
 end
@@ -189,7 +195,7 @@ local optim_config = {learningRate = opt.learning_rate}
 local num_train = loader.split_sizes['train']
 local num_iterations = opt.max_epochs * num_train
 model:training()
-for i = 1, num_iterations do
+for i = start_i + 1, num_iterations do
   local epoch = math.floor(i / num_train) + 1
 
   -- Check if we are at the end of an epoch
@@ -246,6 +252,7 @@ for i = 1, num_iterations do
       val_loss_history_it = val_loss_history_it,
       forward_backward_times = forward_backward_times,
       memory_usage = memory_usage,
+      i = i
     }
     local filename = string.format('%s_%d.json', opt.checkpoint_name, i)
     -- Make sure the output directory exists before we try to write it
