@@ -94,6 +94,8 @@ else
 end
 local params, grad_params = model:getParameters()
 local crit = nn.CrossEntropyCriterion():type(dtype)
+local softmax = nn.LogSoftMax():type(dtype)
+local cost = nn.ClassNLLCriterion():type(dtype)
 
 -- Set up some variables we will use below
 local N, T = opt.batch_size, opt.seq_length
@@ -205,10 +207,11 @@ for i = start_i + 1, num_iterations do
       xv = xv:type(dtype)
       yv = yv:type(dtype):view(N * T)
       local scores = model:forward(xv):view(N * T, -1)
-      val_loss = val_loss + crit:forward(scores, yv)
+      local logscores = softmax:forward(scores)
+      val_loss = val_loss + crit:forward(logscores, yv)
     end
     val_loss = val_loss / num_val
-    print('val_loss = ', val_loss)
+    print('val_loss = ', torch.exp(val_loss))
     table.insert(val_loss_history, val_loss)
     table.insert(val_loss_history_it, i)
     model:resetStates()
