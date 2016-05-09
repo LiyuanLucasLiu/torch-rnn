@@ -15,9 +15,9 @@ function DataLoader:__init(kwargs)
   -- Just slurp all the data into memory
   local splits = {}
   local f = hdf5.open(h5_file, 'r')
-  splits.train = f:read('/train'):all()
-  splits.val = f:read('/val'):all()
-  splits.test = f:read('/test'):all()
+  splits.train = f:read('/train_1d'):all()
+  splits.val = f:read('/val_1d'):all()
+  splits.test = f:read('/test_1d'):all()
 
   self.x_splits = {}
   self.y_splits = {}

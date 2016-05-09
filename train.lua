@@ -75,10 +75,7 @@ end
 -- Initialize the DataLoader and vocabulary
 local loader = DataLoader(opt)
 local vocab = utils.read_json(opt.input_json)
-local idx_to_token = {}
-for k, v in pairs(vocab.idx_to_token) do
-  idx_to_token[tonumber(k)] = v
-end
+local idx_to_token = vocab.rcc
 
 -- Initialize the model and criterion
 local opt_clone = torch.deserialize(torch.serialize(opt))
