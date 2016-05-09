@@ -115,11 +115,13 @@ with h5py.File(args.output_h5, 'w') as f:
 with h5py.File(args.output_font, 'w') as f:
 	f.create_dataset('font', data = font)
 
+rcc = { v:k for k, v in cc.iteritems()}
+
 json_data = {
 	'cd':cd,
-	'ct':ct,
 	'char_set_size':char_set_size,
 	'cc':cc,
+	'rcc':rcc
 }
 with open(args.output_json, 'w') as f:
 	json.dump(json_data, f)

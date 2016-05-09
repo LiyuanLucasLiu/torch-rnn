@@ -60,7 +60,7 @@ cmd:option('-gpu_backend', 'cuda')
 
 local opt = cmd:parse(arg)
 
-torch.save('opt.t7', opt)
+-- torch.save('opt.t7', opt)
 -- Set up GPU stuff
 local dtype = 'torch.FloatTensor'
 if opt.gpu >= 0 and opt.gpu_backend == 'cuda' then
@@ -87,7 +87,6 @@ end
 -- Initialize the DataLoader and vocabulary
 local loader = DataLoader(opt)
 local vocab = utils.read_json(opt.input_json)
-local idx_to_token = {}
 -----------------------------------------------
 -- for k, v in pairs(vocab.cc) do
 --   idx_to_token[tonumber(k)] = v
@@ -98,9 +97,9 @@ local opt_clone = torch.deserialize(torch.serialize(opt))
 opt_clone.vocab_size = vocab.char_set_size
 opt_clone.weight = loader.font:size(2)
 opt_clone.height = loader.font:size(3)
-opt_clone.char2dig = vocab.cd
-opt_clone.idx2char = idx_to_token
-torch.save('opt_clone.t7', opt_clone)
+opt_clone.char2dig = vocab.cc
+opt_clone.idx2char = vocab.rcc
+-- torch.save('opt_clone.t7', opt_clone)
 
 local model = nil
 local start_i = 0
