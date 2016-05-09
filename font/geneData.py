@@ -9,9 +9,9 @@ parser.add_argument('--input_font', default = './dict.np')
 parser.add_argument('--output_h5', default = '../data/wiki0.h5')
 parser.add_argument('--output_font', default = '../data/font.h5')
 parser.add_argument('--output_json', default = '../data/wiki0.js')
-parser.add_argument('--val_frac', type = float, default = 0.01)
-parser.add_argument('--test_frac', type = float, default = 0.01)
-parser.add_argument('--train_frac', type = float, default = 0.1)
+parser.add_argument('--val_frac', type = float, default = 0.003) 
+parser.add_argument('--test_frac', type = float, default = 0.003)
+parser.add_argument('--train_frac', type = float, default = 0.03)
 parser.add_argument('--quiet', action='store_true')
 parser.add_argument('--encoding', default = 'utf-8')
 parser.add_argument('--threshold', default = 50)
@@ -55,10 +55,10 @@ with codecs.open(args.input_txt, 'r', args.encoding) as f:
 		if cur_idx == total_size:
 			break
 
-cur_idx = 1
+cur_idx = 2
 for k, v in cc.iteritems():
 	if v <= args.threshold:
-		cc[k] = 0
+		cc[k] = 1
 	else:
 		cc[k] = cur_idx
 		cur_idx = cur_idx + 1
@@ -79,13 +79,18 @@ split_idx, cur_idx = 0, 0
 with codecs.open(args.input_txt, 'r', args.encoding) as f:
 	for line in f:
 		for char in line:
-			if char == 0x0020:
-				char = 0x3000
-			if char > 0x0020 and char <= 0x007e:
-				char += 0xfee0i
+			code = ord(char)
+			if code ==  0x0020:
+				code = 0x3000
+			if code > 0x0020 and code <= 0x007e:
+				code += 0xfee0
+			char = unichr(code)
 			if char not in cd:
-				splits[split_idx][cur_idx] = font[81]
-				splits_1d[split_idx][cur_idx] = 0
+				# print(char)
+				# print(code)
+				# raw_input()
+				splits[split_idx][cur_idx] = font[cd['?']]
+				splits_1d[split_idx][cur_idx] = 1
 			else:	
 				splits[split_idx][cur_idx] = font[cd[char]]
 				splits_1d[split_idx][cur_idx] = cc[char]
@@ -107,7 +112,7 @@ with h5py.File(args.output_h5, 'w') as f:
 	f.create_dataset('test_1d', data=test_1d)
 	f.create_dataset('font', data=font)
 
-with h5py.File(args.output_h5, 'w') as f:
+with h5py.File(args.output_font, 'w') as f:
 	f.create_dataset('font', data = font)
 
 json_data = {

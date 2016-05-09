@@ -12,14 +12,9 @@ local unpack = unpack or table.unpack
 local cmd = torch.CmdLine()
 
 -- Dataset options
-<<<<<<< HEAD
 cmd:option('-input_font', 'data/font.h5')
-cmd:option('-input_h5', 'data/tiny-shakespeare.h5')
-cmd:option('-input_json', 'data/tiny-shakespeare.json')
-=======
 cmd:option('-input_h5', 'data/wiki0.h5')
 cmd:option('-input_json', 'data/wiki0.js')
->>>>>>> d91a161ce98bfdd94b6d07028fa61d0af7612daf
 cmd:option('-batch_size', 50)
 cmd:option('-seq_length', 50)
 
@@ -35,7 +30,7 @@ cmd:option('-batchnorm', 1)
 -- CNN options
 cmd:option('-channelSize', {32, 64, 128})
 cmd:option('-dropoutProb', {0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2})
-cmd:option('-kernelSize', {5, 5, 5})
+cmd:option('-kernelSize', {5, 5, 4})
 cmd:option('-kernelStride', {1, 1, 1})
 cmd:option('-padding', true)
 cmd:option('-poolSize', {2, 2, 2})
@@ -51,7 +46,7 @@ cmd:option('-lr_decay_factor', 0.5)
 
 -- Output options
 cmd:option('-print_every', 1)
-cmd:option('-checkpoint_every', 69999)
+cmd:option('-checkpoint_every', 2)------69999)
 cmd:option('-checkpoint_name', 'cv/checkpoint')
 
 -- Benchmark options
@@ -64,7 +59,7 @@ cmd:option('-gpu_backend', 'cuda')
 
 local opt = cmd:parse(arg)
 
-
+torch.save('opt.t7', opt)
 -- Set up GPU stuff
 local dtype = 'torch.FloatTensor'
 if opt.gpu >= 0 and opt.gpu_backend == 'cuda' then
@@ -104,7 +99,7 @@ opt_clone.weight = loader.font:size(2)
 opt_clone.height = loader.font:size(3)
 opt_clone.char2dig = vocab.cd
 opt_clone.idx2char = idx_to_token
-
+torch.save('opt_clone.t7', opt_clone)
 
 local model = nil
 if opt.init_from ~= '' then
@@ -115,8 +110,8 @@ else
 end
 local params, grad_params = model:getParameters()
 local crit = nn.CrossEntropyCriterion():type(dtype)
-local softmax = nn.LogSoftMax()
-local cost = nn.ClassNLLCriterion()
+local softmax = nn.LogSoftMax():type(dtype)
+local cost = nn.ClassNLLCriterion():type(dtype)
 
 -- Set up some variables we will use below
 local N, T = opt.batch_size, opt.seq_length
@@ -151,6 +146,7 @@ local function f(w)
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
   local scores_view = scores:view(N * T, -1)
+  -- print(scores_view:size())
   local y_view = y:view(N * T)
   --print(6)
   local loss = crit:forward(scores_view, y_view)
@@ -225,7 +221,7 @@ for i = 1, num_iterations do
     -- shouldn't cause too much trouble.
     model:evaluate()
     model:resetStates()
-    local num_val = loader.split_sizes['val']
+    local num_val = 2 ------loader.split_sizes['val']
     local val_loss = 0
     for j = 1, num_val do
       local xv, yv = loader:nextBatch('val')
@@ -233,7 +229,7 @@ for i = 1, num_iterations do
       yv = yv:type(dtype):view(N * T)
       local scores = model:forward(xv):view(N * T, -1)
       local logscores = softmax:forward(scores)
-      val_loss = val_loss + loss:forward(logscores, yv)
+      val_loss = val_loss + cost:forward(logscores, yv)
     end
     val_loss = val_loss / num_val
     print('val_loss = ', torch.exp(val_loss))
@@ -266,6 +262,6 @@ for i = 1, num_iterations do
     torch.save(filename, checkpoint)
     model:type(dtype)
     params, grad_params = model:getParameters()
-    --collectgarbage()
+    collectgarbage()
   end
 end

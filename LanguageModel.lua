@@ -199,10 +199,10 @@ function LM:encode_string(s)
   for i = 1, #s do
     local token = s:sub(i, i)
     local idx = nil
-    if token in self.char2dig then
+    if self.char2dig[token] ~= nil then
       idx = self.char2dig[token]
     else
-      idx = 81
+      idx = self.char2dig['?']
     end
     encoded[1][i]:copy(self.font[{{idx}, {}, {}}]:view(self.weight_input, self.height_input))
   end
