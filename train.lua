@@ -11,8 +11,8 @@ local unpack = unpack or table.unpack
 local cmd = torch.CmdLine()
 
 -- Dataset options
-cmd:option('-input_h5', 'data/tiny-shakespeare.h5')
-cmd:option('-input_json', 'data/tiny-shakespeare.json')
+cmd:option('-input_h5', 'data/wiki0.h5')
+cmd:option('-input_json', 'data/wiki0.js')
 cmd:option('-batch_size', 50)
 cmd:option('-seq_length', 50)
 
@@ -20,9 +20,9 @@ cmd:option('-seq_length', 50)
 cmd:option('-init_from', '')
 cmd:option('-reset_iterations', 1)
 cmd:option('-model_type', 'lstm')
-cmd:option('-wordvec_size', 64)
-cmd:option('-rnn_size', 128)
-cmd:option('-num_layers', 2)
+cmd:option('-wordvec_size', 200)
+cmd:option('-rnn_size', 256)
+cmd:option('-num_layers', 3)
 cmd:option('-dropout', 0)
 cmd:option('-batchnorm', 0)
 
@@ -35,8 +35,8 @@ cmd:option('-lr_decay_factor', 0.5)
 
 -- Output options
 cmd:option('-print_every', 1)
-cmd:option('-checkpoint_every', 1000)
-cmd:option('-checkpoint_name', 'cv/checkpoint')
+cmd:option('-checkpoint_every', 10000)
+cmd:option('-checkpoint_name', 'cv_ori/checkpoint')
 
 -- Benchmark options
 cmd:option('-speed_benchmark', 0)
@@ -200,7 +200,7 @@ for i = start_i + 1, num_iterations do
     -- shouldn't cause too much trouble.
     model:evaluate()
     model:resetStates()
-    local num_val = loader.split_sizes['val']
+    local num_val = 100 ------loader.split_sizes['val']
     local val_loss = 0
     for j = 1, num_val do
       local xv, yv = loader:nextBatch('val')
@@ -208,7 +208,7 @@ for i = start_i + 1, num_iterations do
       yv = yv:type(dtype):view(N * T)
       local scores = model:forward(xv):view(N * T, -1)
       local logscores = softmax:forward(scores)
-      val_loss = val_loss + loss:forward(logscores, yv)
+      val_loss = val_loss + cost:forward(logscores, yv)
     end
     val_loss = val_loss / num_val
     print('val_loss = ', torch.exp(val_loss))
