@@ -6,6 +6,7 @@ import codecs
 parser = argparse.ArgumentParser()
 parser.add_argument('--input_txt', default = '../data/wiki0.txt')
 parser.add_argument('--input_font', default = './dict.np')
+parser.add_argument('--input_json', default = '')
 parser.add_argument('--output_h5', default = '../data/wiki0.h5')
 parser.add_argument('--output_font', default = '../data/font.h5')
 parser.add_argument('--output_json', default = '../data/wiki0.js')
@@ -17,24 +18,44 @@ parser.add_argument('--encoding', default = 'utf-8')
 parser.add_argument('--threshold', default = 50)
 args = parser.parse_args()
 
-with open('CharTable.json', 'rb') as f:
-	ct = json.loads(f.read())
-cd = {}
-cc = {}
-for idx in range(0, len(ct)):
-	cd[ct[idx]] = idx
-	cc[ct[idx]] = 0
-
 with open(args.input_font, 'rb') as f:
 	font = np.load(f)
 
-total_size = 0
-with codecs.open(args.input_txt, 'r', args.encoding) as f:
-	for line in f:
-		total_size += len(line)
-		for char in line:
-			if char in cc:
-				cc[char] = cc[char] + 1
+if args.input_json == '':
+	with open('CharTable.json', 'rb') as f:
+		ct = json.load(f.read)
+	cd = {}
+	cc = {}
+	for idx in range(0, len(ct)):
+		cd[ct[idx]] = idx
+		cc[ct[idx]] = 0
+
+	total_size = 0
+	with codecs.open(args.input_txt, 'r', args.encoding) as f:
+		for line in f:
+			total_size += len(line)
+			for char in line:
+				if char in cc:
+					cc[char] = cc[char] + 1
+
+	cur_idx = 2
+	for k, v in cc.iteritems():
+		if v <= args.threshold:
+			cc[k] = 1
+		else:
+			cc[k] = cur_idx
+			cur_idx = cur_idx + 1
+	char_set_size = cur_idx
+else:
+	with open(args.input_json, 'rb') as f:
+		json_data = json.load(f)
+		cc = json_data['cc']
+		cd = json_data['cd']
+		char_set_size = json_data['char_set_size']
+	total_size = 0
+	with codecs.open(args.input_txt, 'r', args.encoding) as f:
+		for line in f:
+			total_size += len(line)
 
 val_size = int(args.val_frac * total_size)
 test_size = int(args.test_frac * total_size)
@@ -45,15 +66,6 @@ if not args.quiet:
 	print 'Training Size: %d' % train_size
 	print 'Val Size: %d' % val_size
 	print 'Test Size: %d' % test_size
-
-cur_idx = 2
-for k, v in cc.iteritems():
-	if v <= args.threshold:
-		cc[k] = 1
-	else:
-		cc[k] = cur_idx
-		cur_idx = cur_idx + 1
-char_set_size = cur_idx
 
 dtype = np.uint8
 dtype2 = np.uint32
@@ -114,5 +126,5 @@ json_data = {
 	'cc':cc,
 	'rcc':rcc
 }
-with open(args.output_json, 'w') as f:
+with open(args.output_json, 'wb') as f:
 	json.dump(json_data, f)

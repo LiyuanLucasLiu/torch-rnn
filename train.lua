@@ -226,7 +226,7 @@ for i = start_i + 1, num_iterations do
     -- shouldn't cause too much trouble.
     model:evaluate()
     model:resetStates()
-    local num_val = 2 ------loader.split_sizes['val']
+    local num_val = loader.split_sizes['val']
     local val_loss = 0
     for j = 1, num_val do
       local xv, yv = loader:nextBatch('val')
