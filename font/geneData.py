@@ -32,6 +32,9 @@ total_size = 0
 with codecs.open(args.input_txt, 'r', args.encoding) as f:
 	for line in f:
 		total_size += len(line)
+		for char in line:
+			if char in cc:
+				cc[char] = cc[char] + 1
 
 val_size = int(args.val_frac * total_size)
 test_size = int(args.test_frac * total_size)
@@ -42,18 +45,6 @@ if not args.quiet:
 	print 'Training Size: %d' % train_size
 	print 'Val Size: %d' % val_size
 	print 'Test Size: %d' % test_size
-
-cur_idx = 0
-with codecs.open(args.input_txt, 'r', args.encoding) as f:
-	for line in f:
-		for char in line:
-			cur_idx += 1
-			if char in cc:
-				cc[char] = cc[char] + 1
-			if cur_idx == total_size:
-				break
-		if cur_idx == total_size:
-			break
 
 cur_idx = 2
 for k, v in cc.iteritems():
@@ -86,9 +77,9 @@ with codecs.open(args.input_txt, 'r', args.encoding) as f:
 				code += 0xfee0
 			char = unichr(code)
 			if char not in cd:
-				# print(char)
-				# print(code)
-				# raw_input()
+				#print(char)
+				#print(code)
+				#raw_input()
 				splits[split_idx][cur_idx] = font[cd['?']]
 				splits_1d[split_idx][cur_idx] = 1
 			else:	

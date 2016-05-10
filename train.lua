@@ -47,7 +47,7 @@ cmd:option('-lr_decay_factor', 0.5)
 
 -- Output options
 cmd:option('-print_every', 1)
-cmd:option('-checkpoint_every', 2)------69999)
+cmd:option('-checkpoint_every', 2000)------69999)
 cmd:option('-checkpoint_name', 'cv/checkpoint')
 
 -- Benchmark options
@@ -60,7 +60,7 @@ cmd:option('-gpu_backend', 'cuda')
 
 local opt = cmd:parse(arg)
 
--- torch.save('opt.t7', opt)
+--torch.save('opt.t7', opt)
 -- Set up GPU stuff
 local dtype = 'torch.FloatTensor'
 if opt.gpu >= 0 and opt.gpu_backend == 'cuda' then
