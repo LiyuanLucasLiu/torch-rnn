@@ -22,6 +22,7 @@ function DataLoader:__init(kwargs)
 
   self.x_splits = {}
   self.y_splits = {}
+  self.xind_splits = {}
   self.split_sizes = {}
   for split, v in pairs(splits) do
     local shape = v:size()
@@ -48,8 +49,9 @@ function DataLoader:__init(kwargs)
     -- Chop out the extra bits at the end to make it evenly divide
     -- local vx = v[{{1, num - extra}, {}, {}}]:view(N, -1, T, shape[2], shape[3]):transpose(1, 2):clone()
     local vy = v[{{2, num - extra + 1}}]:view(N, -1, T):transpose(1, 2):clone()
+    local vxind = v[{{1, num - extra}}]:view(N, -1, T):transpose(1, 2):clone()
 
-    -- self.x_splits[split] = vx
+    self.xind_splits[split] = vxind
     self.y_splits[split] = vy
   end
 
@@ -61,12 +63,13 @@ function DataLoader:nextBatch(split)
   local idx = self.split_idxs[split]
   assert(idx, 'invalid split ' .. split)
   local x = self.x_splits[split][idx]
+  local xind = self.xind_splits[split][idx]
   local y = self.y_splits[split][idx]
   if idx == self.split_sizes[split] then
     self.split_idxs[split] = 1
   else
     self.split_idxs[split] = idx + 1
   end
-  return x, y
+  return x, xind, y
 end
 

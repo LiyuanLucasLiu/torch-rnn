@@ -141,13 +141,13 @@ local function f(w)
 
   -- Get a minibatch and run the model forward, maybe timing it
   local timer
-  local x, y = loader:nextBatch('train')
-  x, y = x:type(dtype), y:type(dtype)
+  local x, xind, y = loader:nextBatch('train')
+  x, xind, y = x:type(dtype), xind:type(dtype), y:type(dtype)
   if opt.speed_benchmark == 1 then
     if cutorch then cutorch.synchronize() end
     timer = torch.Timer()
   end
-  local scores = model:forward(x)
+  local scores = model:forward({x, xind})
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
   local scores_view = scores:view(N * T, -1)

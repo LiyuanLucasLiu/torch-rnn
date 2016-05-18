@@ -49,18 +49,21 @@ function LM:__init(kwargs)
 
   -- input layers
   self.net = nn.Sequential()
+  self.cnns = nn.Sequential()
+  self.embedding = nn.ParallelTable()
+  self.lookupTable = nn.lookupTable(self.vocab_size, self.wordvec_dim)
   self.rnns = {}
   self.view0 = nn.View(-1, 1, self.weight_input, self.height_input):setNumInputDims(4)
-  self.net:add(self.view0)
+  self.cnns:add(self.view0)
 
   -- cnn layers
   inputSize = 1
   depth = 1
   for i = 1, #self.channelSize do 
     if self.dropout and (self.dropProb[depth] or 0) > 0 then
-      self.net:add(nn.SpatialDropout(self.dropProb[depth]))
+      self.cnns:add(nn.SpatialDropout(self.dropProb[depth]))
     end
-    self.net:add(nn.SpatialConvolution(
+    self.cnns:add(nn.SpatialConvolution(
       inputSize, self.channelSize[i],
       self.kernelSize[i], self.kernelSize[i],
       self.kernelStride[i], self.kernelStride[i],
@@ -68,11 +71,11 @@ function LM:__init(kwargs)
     ))
      
     if self.batchNorm then
-      self.net:add(nn.SpatialBatchNormalization(self.channelSize[i]))
+      self.cnns:add(nn.SpatialBatchNormalization(self.channelSize[i]))
     end
-    self.net:add(nn[self.activation]())
+    self.cnns:add(nn[self.activation]())
     if self.poolSize[i] and self.poolSize[i] > 0 then
-      self.net:add(nn.SpatialMaxPooling(
+      self.cnns:add(nn.SpatialMaxPooling(
         self.poolSize[i], self.poolSize[i],
         self.poolStride[i] or self.poolSize[i],
         self.poolStride[i] or self.poolsize[i]
@@ -84,7 +87,7 @@ function LM:__init(kwargs)
 
   -- calcuate output size
   local tmp = torch.zeros(1, 1, self.weight_input, self.height_input)
-  local tmp2 = self.net:forward(tmp)
+  local tmp2 = self.cnns:forward(tmp)
   self.plane_output = tmp2:size(2)
   self.weight_output = tmp2:size(3)
   self.height_output = tmp2:size(4)
@@ -92,17 +95,24 @@ function LM:__init(kwargs)
   self.view4 = nn.View(1, 1, -1):setNumInputDims(2)
 
   -- highway layers
-  self.net:add(self.view3)
+  self.cnns:add(self.view3)
   if self.dropout and (self.dropProb[depth] or 0) > 0 then
-    self.net:add(nn.Dropout(self.dropProb[depth]))
+    self.cnns:add(nn.Dropout(self.dropProb[depth]))
   end
-  self.net:add(nn.Linear(self.weight_output*self.height_output*self.plane_output, D))
+  self.cnns:add(nn.Linear(self.weight_output*self.height_output*self.plane_output, D))
   if self.batchNorm then
-    self.net:add(nn.BatchNormalization(D))
+    self.cnns:add(nn.BatchNormalization(D))
   end
-  self.net:add(nn[self.activation]())
-  self.net:add(self.view4)
+  self.cnns:add(nn[self.activation]())
+  self.cnns:add(self.view4)
   depth = depth + 1
+
+  -- assemble embedding layers
+  self.embedding:add(self.cnns)
+  self.embedding:add(self.lookupTable)
+
+  self.net:add(self.embedding)
+  self.net:add(nn.CAddTable())
 
  -- rnn layers
   for i = 1, self.num_layers do
