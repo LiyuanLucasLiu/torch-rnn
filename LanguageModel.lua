@@ -32,6 +32,7 @@ function LM:__init(kwargs)
   self.dropout = utils.get_kwarg(kwargs, 'dropout')
   self.batchnorm = utils.get_kwarg(kwargs, 'batchnorm')
 
+  self.allowCnn = utils.get_kwarg(kwargs, 'allowCnn')
   self.channelSize = utils.get_kwarg(kwargs, 'channelSize')
   self.dropProb = utils.get_kwarg(kwargs, 'dropoutProb')
   self.kernelSize = utils.get_kwarg(kwargs, 'kernelSize')
@@ -51,68 +52,72 @@ function LM:__init(kwargs)
   self.net = nn.Sequential()
   self.cnns = nn.Sequential()
   self.embedding = nn.ParallelTable()
-  self.lookupTable = nn.lookupTable(self.vocab_size, self.wordvec_dim)
+  self.lookupTable = nn.LookupTable(self.vocab_size, self.wordvec_dim)
   self.rnns = {}
-  self.view0 = nn.View(-1, 1, self.weight_input, self.height_input):setNumInputDims(4)
-  self.cnns:add(self.view0)
+	self.view0 = nn.View(-1, 1, self.weight_input, self.height_input):setNumInputDims(4)
+	self.cnns:add(self.view0)
 
-  -- cnn layers
-  inputSize = 1
-  depth = 1
-  for i = 1, #self.channelSize do 
-    if self.dropout and (self.dropProb[depth] or 0) > 0 then
-      self.cnns:add(nn.SpatialDropout(self.dropProb[depth]))
-    end
-    self.cnns:add(nn.SpatialConvolution(
-      inputSize, self.channelSize[i],
-      self.kernelSize[i], self.kernelSize[i],
-      self.kernelStride[i], self.kernelStride[i],
-      self.padding and math.floor(self.kernelSize[i]/2) or 0
-    ))
-     
-    if self.batchNorm then
-      self.cnns:add(nn.SpatialBatchNormalization(self.channelSize[i]))
-    end
-    self.cnns:add(nn[self.activation]())
-    if self.poolSize[i] and self.poolSize[i] > 0 then
-      self.cnns:add(nn.SpatialMaxPooling(
-        self.poolSize[i], self.poolSize[i],
-        self.poolStride[i] or self.poolSize[i],
-        self.poolStride[i] or self.poolsize[i]
-      ))
-    end
-    inputSize = self.channelSize[i]
-    depth = depth + 1
+	-- cnn layers
+	inputSize = 1
+	depth = 1
+	for i = 1, #self.channelSize do 
+		if self.dropout and (self.dropProb[depth] or 0) > 0 then
+			self.cnns:add(nn.SpatialDropout(self.dropProb[depth]))
+		end
+		self.cnns:add(nn.SpatialConvolution(
+			inputSize, self.channelSize[i],
+			self.kernelSize[i], self.kernelSize[i],
+			self.kernelStride[i], self.kernelStride[i],
+			self.padding and math.floor(self.kernelSize[i]/2) or 0
+		))
+		 
+		if self.batchNorm then
+			self.cnns:add(nn.SpatialBatchNormalization(self.channelSize[i]))
+		end
+		self.cnns:add(nn[self.activation]())
+		if self.poolSize[i] and self.poolSize[i] > 0 then
+			self.cnns:add(nn.SpatialMaxPooling(
+				self.poolSize[i], self.poolSize[i],
+				self.poolStride[i] or self.poolSize[i],
+				self.poolStride[i] or self.poolsize[i]
+			))
+		end
+		inputSize = self.channelSize[i]
+		depth = depth + 1
+	end
+
+	-- calcuate output size
+	local tmp = torch.zeros(1, 1, self.weight_input, self.height_input)
+	local tmp2 = self.cnns:forward(tmp)
+	self.plane_output = tmp2:size(2)
+	self.weight_output = tmp2:size(3)
+	self.height_output = tmp2:size(4)
+	print(tmp2:size())
+	self.view3 = nn.View(-1, self.weight_output*self.height_output*self.plane_output)
+	self.view4 = nn.View(1, 1, -1):setNumInputDims(2)
+
+	-- highway layers
+	self.cnns:add(self.view3)
+	if self.dropout and (self.dropProb[depth] or 0) > 0 then
+		self.cnns:add(nn.Dropout(self.dropProb[depth]))
+	end
+	self.cnns:add(nn.Linear(self.weight_output*self.height_output*self.plane_output, D))
+	if self.batchNorm then
+		self.cnns:add(nn.BatchNormalization(D))
+	end
+	self.cnns:add(nn[self.activation]())
+	self.cnns:add(self.view4)
+	depth = depth + 1
+
+	-- assemble embedding layers
+	self.embedding:add(self.cnns)
+	self.embedding:add(self.lookupTable)
+  if self.allowCnn == 1 then
+		self.net:add(self.embedding)
+		self.net:add(nn.CAddTable())
+  else
+    self.net:add(self.lookupTable)
   end
-
-  -- calcuate output size
-  local tmp = torch.zeros(1, 1, self.weight_input, self.height_input)
-  local tmp2 = self.cnns:forward(tmp)
-  self.plane_output = tmp2:size(2)
-  self.weight_output = tmp2:size(3)
-  self.height_output = tmp2:size(4)
-  self.view3 = nn.View(-1, self.weight_output*self.height_output*self.plane_output)
-  self.view4 = nn.View(1, 1, -1):setNumInputDims(2)
-
-  -- highway layers
-  self.cnns:add(self.view3)
-  if self.dropout and (self.dropProb[depth] or 0) > 0 then
-    self.cnns:add(nn.Dropout(self.dropProb[depth]))
-  end
-  self.cnns:add(nn.Linear(self.weight_output*self.height_output*self.plane_output, D))
-  if self.batchNorm then
-    self.cnns:add(nn.BatchNormalization(D))
-  end
-  self.cnns:add(nn[self.activation]())
-  self.cnns:add(self.view4)
-  depth = depth + 1
-
-  -- assemble embedding layers
-  self.embedding:add(self.cnns)
-  self.embedding:add(self.lookupTable)
-
-  self.net:add(self.embedding)
-  self.net:add(nn.CAddTable())
 
  -- rnn layers
   for i = 1, self.num_layers do
@@ -155,11 +160,18 @@ function LM:__init(kwargs)
   self.net:add(self.view1)
   self.net:add(nn.Linear(H, V))
   self.net:add(self.view2)
+	
+	print(self.net)
 end
 
 
 function LM:updateOutput(input)
-  local N, T = input:size(1), input:size(2)
+	local N, T = nil, nil
+  if allowCnn == 1 then
+  	N, T = input[1]:size(1), input[1]:size(2)
+	else
+		N, T = input:size(1), input:size(2)	
+	end
   self.view1:resetSize(N * T, -1)
   self.view2:resetSize(N, T, -1)
   self.view4:resetSize(N, T, -1)

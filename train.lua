@@ -12,9 +12,9 @@ local unpack = unpack or table.unpack
 local cmd = torch.CmdLine()
 
 -- Dataset options
-cmd:option('-input_font', 'data/font.h5')
-cmd:option('-input_h5', 'data/wiki0.h5')
-cmd:option('-input_json', 'data/wiki0.js')
+cmd:option('-input_font', 'data/font_14.h5')
+cmd:option('-input_h5', 'data/wiki0_14.h5')
+cmd:option('-input_json', 'data/wiki0_14.js')
 cmd:option('-batch_size', 50)
 cmd:option('-seq_length', 50)
 
@@ -29,13 +29,14 @@ cmd:option('-dropout', 1)
 cmd:option('-batchnorm', 1)
 
 -- CNN options
+cmd:option('-allowCnn', 1)
 cmd:option('-channelSize', {32, 64, 128})
 cmd:option('-dropoutProb', {0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2})
-cmd:option('-kernelSize', {5, 5, 4})
+cmd:option('-kernelSize', {4, 4, 3})
 cmd:option('-kernelStride', {1, 1, 1})
 cmd:option('-padding', true)
 cmd:option('-poolSize', {2, 2, 2})
-cmd:option('-poolStride', {2, 2, 2})
+cmd:option('-poolStride', {2, 2, 1})
 cmd:option('-activation', 'ReLU', 'transfer function like ReLU, Tanh, Sigmoid')
 
 -- Optimization options
@@ -119,6 +120,7 @@ local softmax = nn.LogSoftMax():type(dtype)
 local cost = nn.ClassNLLCriterion():type(dtype)
 
 -- Set up some variables we will use below
+local allowCnn = opt.allowCnn
 local N, T = opt.batch_size, opt.seq_length
 local train_loss_history = {}
 local val_loss_history = {}
@@ -147,7 +149,12 @@ local function f(w)
     if cutorch then cutorch.synchronize() end
     timer = torch.Timer()
   end
-  local scores = model:forward({x, xind})
+  local scores = nil
+	if allowCnn == 1 then
+		scores = model:forward({x, xind})
+  else
+    scores = model:forward(xind)
+	end 
   -- Use the Criterion to compute loss; we need to reshape the scores to be
   -- two-dimensional before doing so. Annoying.
   local scores_view = scores:view(N * T, -1)
@@ -163,7 +170,12 @@ local function f(w)
   --end
   -- Run the Criterion and model backward to compute gradients, maybe timing it
   local grad_scores = crit:backward(scores_view, y_view):view(N, T, -1)
-  model:backward(x, grad_scores)
+  if allowCnn == 1 then
+    model:backward({x, xind}, grad_scores)
+	else
+    model:backward(xind, grad_scores)
+	end
+		
   if timer then
     if cutorch then cutorch.synchronize() end
     local time = timer:time().real
@@ -229,10 +241,16 @@ for i = start_i + 1, num_iterations do
     local num_val = loader.split_sizes['val']
     local val_loss = 0
     for j = 1, num_val do
-      local xv, yv = loader:nextBatch('val')
+      local xv, xindv, yv = loader:nextBatch('val')
       xv = xv:type(dtype)
+      xindv = xindv:type(dtype)
       yv = yv:type(dtype):view(N * T)
-      local scores = model:forward(xv):view(N * T, -1)
+      local scores = nil
+			if allowCnn == 1 then
+				scores = model:forward({xv,xindv}):view(N * T, -1)
+			else
+				scores = model:forward(xindv):view(N * T, -1)
+			end
       local logscores = softmax:forward(scores)
       val_loss = val_loss + cost:forward(logscores, yv)
     end
